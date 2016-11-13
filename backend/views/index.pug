@@ -1,0 +1,17 @@
+doctype html
+head(lang='fr')
+  meta(charset='utf-8')
+  title bebras monitor
+body(id='app')
+  div(id='react-container')
+    div(style="margin: 10px auto; width: 100px;")
+      img#gears(src='assets/gears.svg', style="width: 100%")
+  if development
+    script(type='text/javascript', src='jspm_packages/system.src.js')
+    script(type='text/javascript', src='src/jspm-0.17.config.js')
+    script(type='text/javascript', src='build/babel-bundle.js')
+    script(type='text/javascript', src='build/dependency-bundle.js')
+    script(type='text/javascript').
+      SystemJS.import('src/index.js');
+  else
+    script(type='text/javascript', src='build/index.js')
