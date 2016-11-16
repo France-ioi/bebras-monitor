@@ -11,6 +11,19 @@ bluebird.promisifyAll(Redis.Multi.prototype);
 
 const redis = Redis.createClient(process.env.REDIS_URL);
 
+const PerIpKeys = [
+  'answer.total',
+  'checkPassword.total',
+  'closeContest.total',
+  'createTeam.total',
+  'destroySession',
+  'getRemainingTime.total',
+  'loadContestData.total',
+  'loadPublicGroups',
+  'loadSession.total',
+  'solutions.total'
+];
+
 function reducer (state, action) {
   return state;
 }
@@ -57,8 +70,19 @@ function* main () {
       const hexIp = md[1];
       const ip = hexToBytes(hexIp);
       const ipStr = ip.join('.');
-      const checkPasswordTotal = parseInt(yield cps([redis, redis.get], `c.${key}.checkPassword.total`));
-      if (checkPasswordTotal > 1000) {
+      const keys = PerIpKeys.map(suffix => `c.${key}.${suffix}`);
+      const totals = yield cps([redis, redis.mget], keys);
+      let sum = 0;
+      totals.forEach(function (str, i) {
+        console.log(`<${str}>`);
+        if (str === null) {
+          totals[i] = '-';
+        } else {
+          sum += parseInt(str);
+        }
+      });
+      console.log(`  ${ipStr} ${sum} ${totals.join(' ')}`);
+      if (sum > 1000) {
         console.log('blacklisting ', hexIp, ipStr);
         yield cps([redis, redis.sadd], 'blacklist', hexIp);
         // yield cps([redis, redis.set], `a.${hexIp}`, 'b');
