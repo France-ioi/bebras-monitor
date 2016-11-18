@@ -18,9 +18,8 @@
     "bundle-babel": "jspm bundle --minify babel build/babel-bundle.js",
     "bundle-deps": "jspm bundle --minify 'frontend/**/*' - '[frontend/**/*]' build/dependency-bundle.js",
     "build": "jspm build frontend/index.js build/index.js",
-    "develop": "NODE_ENV=development node backend/index.js",
+    "develop": "NODE_ENV=development babel-watch --use-polling backend/index.js",
     "start": "NODE_ENV=production node backend/index.js",
-    "worker": "babel-watch --use-polling worker/index.js",
     "flow": "flow"
   },
   "jspm": {
@@ -35,6 +34,8 @@
       "epic-linker": "npm:epic-linker@^1.0.5",
       "font-awesome": "npm:font-awesome@^4.7.0",
       "lodash": "npm:lodash@^4.16.6",
+      "normalize.css": "github:necolas/normalize.css@^5.0.0",
+      "plugin-sass": "npm:plugin-sass@^0.0.1-security",
       "react-bootstrap": "npm:react-bootstrap@^0.30.6",
       "react-redux": "npm:react-redux@^4.4.5",
       "scss": "github:mobilexag/plugin-sass@^0.5.0",
@@ -152,6 +153,7 @@
     "body-parser": "^1.15.0",
     "express": "^4.13.4",
     "fingertree": "epixode/fingertree.js#master",
+    "functional-red-black-tree": "^1.0.1",
     "immutable": "^3.8.1",
     "pug": "^2.0.0-beta5",
     "redis": "^2.6.3",
