@@ -101,7 +101,7 @@ function* fetchIpCounters (key, hexIp) {
   const counters = yield cps([redis, redis.mget], keys);
   counterKeys.forEach(function (ckey, i) {
     const strValue = counters[i];
-    const value = strValue === null ? 0 : parseInt(value);
+    const value = strValue === null ? 0 : parseInt(strValue);
     entry[ckey] = value;
     entry.total += value;
   });
