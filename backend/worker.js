@@ -35,7 +35,6 @@ function reducer (state, action) {
       liveSetCapacity: 1000
     };
   case 'ADD_ENTRY':
-    console.log('entry', action.entry);
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
       copy.set(action.entry);
       if (copy.size() > state.liveSetCapacity) {
