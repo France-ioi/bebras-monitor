@@ -2,34 +2,55 @@
 import {createStore, applyMiddleware} from 'redux';
 import {END} from 'redux-saga';
 import sagaMiddlewareFactory from 'redux-saga';
-import {call, cps, put} from 'redux-saga/effects'
+import {call, cps, select, put, take, fork} from 'redux-saga/effects'
 import Redis from 'redis';
 import bluebird from 'bluebird';
+import Immutable from 'immutable';
+
+import LiveSet from './live_set';
 
 bluebird.promisifyAll(Redis.RedisClient.prototype);
 bluebird.promisifyAll(Redis.Multi.prototype);
 
 const redis = Redis.createClient(process.env.REDIS_URL);
 
-const PerIpKeys = [
-  'answer.total',
-  'checkPassword.total',
-  'closeContest.total',
-  'createTeam.total',
-  'destroySession',
-  'getRemainingTime.total',
-  'loadContestData.total',
-  'loadPublicGroups',
-  'loadSession.total',
-  'solutions.total'
-];
+const PerIpKeys = {
+  answer: 'answer.total',
+  checkPassword: 'checkPassword.total',
+  closeContest: 'closeContest.total',
+  createTeam: 'createTeam.total',
+  destroySession: 'destroySession',
+  getRemainingTime: 'getRemainingTime.total',
+  loadContestData: 'loadContestData.total',
+  loadPublicGroups: 'loadPublicGroups',
+  loadSession: 'loadSession.total',
+  solutions: 'solutions.total'
+};
 
 function reducer (state, action) {
-  return state;
+  switch (action.type) {
+  case 'INIT':
+    return {
+      fetchQueue: Immutable.List(),
+      liveSet: new LiveSet(),
+      liveSetCapacity: 1000
+    };
+  case 'ADD_ENTRY':
+    console.log('entry', action.entry);
+    return {...state, liveSet: state.liveSet.mutated(function (copy) {
+      copy.set(action.entry);
+      if (copy.size() > state.liveSetCapacity) {
+        const ejected = copy.extractMinTotal(); // or copy.extractLru();
+        console.log('ejected', ejected)
+      }
+    })};
+  default:
+    return state;
+  }
 }
 
-function redisGet (key) {
-  return cps([redis, redis.get], 'version')
+function getElementByKey (state, key) {
+  return state.liveSet.get(key);
 }
 
 function hexToBytes (hex) {
@@ -39,61 +60,68 @@ function hexToBytes (hex) {
   return bytes;
 }
 
-function* main () {
-  let count = 0;
+function* followActivityQueue () {
+  let count = 0, key, element, now;
   const infoMap = {};
   while (true) {
-    let key = yield cps([redis, redis.lpop], 'activity_queue');
-    let infos = infoMap[key];
-    const now = Date.now();
-    if (!infos) {
-      infos = infoMap[key] = {
-        skipUntil: now + 60000,
-        skipCount: 0
-      };
-    } else {
-      if (now < infos.skipUntil) {
-        infos.skipCount += 1;
-        continue;
-      }
-      infos.skipUntil = now + 60000;
-    }
-    // console.log('key', key);
+    // lpop returns the key, or null
+    key = yield cps([redis, redis.lpop], 'activity_queue');
     if (!key) {
       console.log(`queue is empty after ${count} keys`);
       count = 0;
-      key = yield cps([redis, redis.blpop], 'activity_queue', 0);
+      // blpop returns [queue, value]
+      let res = yield cps([redis, redis.blpop], 'activity_queue', 0);
+      key = res[1];
     }
     count += 1;
-    var md = /^IP\(([0-9a-f]+)\)$/.exec(key);
+    element = yield select(getElementByKey, key);
+    now = Date.now();
+    if (element && now < element.updatedAt + 60000) {
+      // TODO: schedule a fetch at updatedAt + 60s
+      continue;
+    }
+    yield put({type: 'FETCH', key});
+  }
+}
+
+function* fetchCounters () {
+  while (true) {
+    let {key} = yield take('FETCH');
+    let md = /^IP\(([0-9a-f]+)\)$/.exec(key);
     if (md) {
-      const hexIp = md[1];
-      const ip = hexToBytes(hexIp);
-      const ipStr = ip.join('.');
-      const keys = PerIpKeys.map(suffix => `c.${key}.${suffix}`);
-      const totals = yield cps([redis, redis.mget], keys);
-      let sum = 0;
-      totals.forEach(function (str, i) {
-        console.log(`<${str}>`);
-        if (str === null) {
-          totals[i] = '-';
-        } else {
-          sum += parseInt(str);
-        }
-      });
-      console.log(`  ${ipStr} ${sum} ${totals.join(' ')}`);
-      if (sum > 1000) {
-        console.log('blacklisting ', hexIp, ipStr);
-        yield cps([redis, redis.sadd], 'blacklist', hexIp);
-        // yield cps([redis, redis.set], `a.${hexIp}`, 'b');
-      }
+      yield call(fetchIpCounters, key, md[1]);
     }
   }
 }
 
-const sagaMiddleware = sagaMiddlewareFactory();
-const store = createStore(
-  reducer,
-  applyMiddleware(sagaMiddleware)
-);
-sagaMiddleware.run(main);
+function* fetchIpCounters (key, hexIp) {
+  const ip = hexToBytes(hexIp);
+  const ipStr = ip.join('.');
+  const entry = {key: key, ip: ipStr, updatedAt: Date.now(), total: 0};
+  const counterKeys = Object.keys(PerIpKeys);
+  const keys = counterKeys.map(ckey => `c.${key}.${PerIpKeys[ckey]}`);
+  const counters = yield cps([redis, redis.mget], keys);
+  counterKeys.forEach(function (ckey, i) {
+    const strValue = counters[i];
+    const value = strValue === null ? 0 : parseInt(value);
+    entry[ckey] = value;
+    entry.total += value;
+  });
+  yield put({type: 'ADD_ENTRY', entry});
+}
+
+function* mainSaga () {
+  yield fork(followActivityQueue);
+  yield fork(fetchCounters);
+}
+
+export default function start () {
+  const sagaMiddleware = sagaMiddlewareFactory();
+  const store = createStore(
+    reducer,
+    applyMiddleware(sagaMiddleware)
+  );
+  store.dispatch({type: 'INIT'});
+  sagaMiddleware.run(mainSaga);
+  return store;
+};
