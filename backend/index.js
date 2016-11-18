@@ -1,12 +1,18 @@
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
-const http = require('http');
-const express = require('express');
-const bodyParser = require('body-parser');
+import * as fs from 'fs';
+import * as path from 'path';
+import * as http from 'http';
+import express from 'express';
+import bodyParser from 'body-parser';
+import Redis from 'redis';
+
+import Worker from './worker';
+
 const rootDir = path.resolve(path.dirname(__dirname));
 const app = express();
+const redis = Redis.createClient(process.env.REDIS_URL);
+const workerStore = Worker();
 
 app.set('view engine', 'pug');
 app.set('views', path.join(rootDir, 'backend', 'views'));
@@ -50,9 +56,12 @@ app.get('/', function (req, res) {
   res.render('index', {development: isDevelopment});
 });
 
-app.post('/api', function (req, res) {
-  res.json({success: false});
+app.get('/top', function (req, res) {
+  const {liveSet} = workerStore.getState();
+  res.json(liveSet.view(parseInt(req.query.count)));
 });
+
+//   return redis.mget(keys, function (err, values) {...}
 
 const server = http.createServer(app);
 const listen = process.env.LISTEN || 8001;

@@ -1,0 +1,39 @@
+
+body {
+  font-family: sans-serif;
+}
+
+#top {
+  overflow: hidden;
+  margin: 0 auto;
+  width: 1000px;
+}
+.refreshedAt {
+  font-size: 8px;
+  color: #888;
+  margin: 0 8px;
+}
+
+.number {
+  text-align: right;
+}
+
+.entry-table {
+  background: #e8e8e8;
+  margin: 2px;
+  line-height: 1;
+  font-family: monospace;
+  font-size: 10px;
+}
+.entry-table > * {
+  display: inline-block;
+  background: #fff;
+  margin: 2px;
+}
+.entry-ip {
+  min-width: 100px;
+  margin-right: 6px;
+}
+.entry-total {
+  min-width: 40px;
+}

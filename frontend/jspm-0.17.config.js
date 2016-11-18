@@ -221,6 +221,7 @@ SystemJS.config({
     "github:*/*.json"
   ],
   map: {
+    "normalize.css": "github:necolas/normalize.css@5.0.0",
     "assert": "npm:jspm-nodelibs-assert@0.2.0",
     "buffer": "npm:jspm-nodelibs-buffer@0.2.0",
     "child_process": "npm:jspm-nodelibs-child_process@0.2.0",
@@ -234,6 +235,7 @@ SystemJS.config({
     "https": "npm:jspm-nodelibs-https@0.2.1",
     "os": "npm:jspm-nodelibs-os@0.2.0",
     "path": "npm:jspm-nodelibs-path@0.2.1",
+    "plugin-sass": "npm:plugin-sass@0.0.1-security",
     "process": "npm:jspm-nodelibs-process@0.2.0",
     "querystring": "npm:jspm-nodelibs-querystring@0.2.0",
     "stream": "npm:jspm-nodelibs-stream@0.2.0",

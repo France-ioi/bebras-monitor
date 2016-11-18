@@ -31,7 +31,6 @@ function reducer (state, action) {
   switch (action.type) {
   case 'INIT':
     return {
-      fetchQueue: Immutable.List(),
       liveSet: new LiveSet(),
       liveSetCapacity: 1000
     };

@@ -1,6 +1,7 @@
 
 import Immutable from 'immutable';
 import FingerTree from 'fingertree';
+import createTree from 'functional-red-black-tree';
 
 function Measure (size, minTotal, maxTotal, lru) {
   this.size = size;
@@ -31,16 +32,36 @@ function Entry (position, element) {
   this.element = element;
 }
 
+function _indexAdd (index, value, key) {
+  const it = index.find(value);
+  if (it.valid) {
+    return it.update(it.value.add(key));
+  } else {
+    return index.insert(value, Immutable.Set([key]));
+  }
+}
+
+function _indexRemove (index, value, key) {
+  const it = index.find(value);
+  if (it === null) {
+    return index;
+  } else {
+    return it.update(it.value.delete(key));
+  }
+}
+
 export default function LiveSet () {
-  this.map = Immutable.Map();
+  this.byKey = Immutable.Map();
   this.tree = FingerTree.fromArray([], measurer);
+  this.byTotal = createTree();
   Object.freeze(this);
 };
 
 LiveSet.prototype.mutated = function (func) {
   const copy = Object.create(LiveSet.prototype);
-  copy.map = this.map;
+  copy.byKey = this.byKey;
   copy.tree = this.tree;
+  copy.byTotal = this.byTotal;
   func(copy);
   Object.freeze(copy);
   return copy;
@@ -51,17 +72,18 @@ LiveSet.prototype.size = function () {
 };
 
 LiveSet.prototype.get = function (key) {
-  const entry = this.map.get(key);
+  const entry = this.byKey.get(key);
   return entry ? entry.element : null;
 };
 
 LiveSet.prototype.set = function (element) {
   const key = element.key;
-  const entry = this.map.get(key);
+  const entry = this.byKey.get(key);
   if (!entry) {
     const position = this.tree.measure().size;
-    this.map = this.map.set(key, new Entry(position, element));
+    this.byKey = this.byKey.set(key, new Entry(position, element));
     this.tree = this.tree.addLast(element);
+    this.byTotal = _indexAdd(this.byTotal, element.total, key);
     return null;
   }
   // Replace the element with the same key.
@@ -69,13 +91,14 @@ LiveSet.prototype.set = function (element) {
   const left = trees[0], right = trees[1];
   const oldElement = right.peekFirst();
   const newRight = right.removeFirst().addFirst(element);
-  this.map = this.map.set(key, new Entry(entry.position, element));
+  this.byKey = this.byKey.set(key, new Entry(entry.position, element));
   this.tree = left.concat(newRight);
+  this.byTotal = _indexAdd(_indexRemove(this.byTotal, oldElement.total, key), element.total, key);
   return oldElement;
 };
 
 LiveSet.prototype.extract = function (key) {
-  var entry = this.map.get(key);
+  var entry = this.byKey.get(key);
   if (!entry) {
     return;
   }
@@ -112,10 +135,26 @@ LiveSet.prototype._extract = function (left, right) {
   let newRight = right.removeFirst();
   if (!newRight.isEmpty()) {
     const replacement = right.peekLast();
-    this.map = this.map.set(replacement.key, new Entry(position, replacement));
+    this.byKey = this.byKey.set(replacement.key, new Entry(position, replacement));
     newRight = right.removeLast().addFirst(replacement);
   }
-  this.map = this.map.delete(element.key);
+  const key = element.key;
+  this.byKey = this.byKey.delete(key);
   this.tree = left.concat(newRight);
+  this.byTotal = _indexRemove(this.byTotal, element.total, key);
   return element;
+};
+
+LiveSet.prototype.view = function (count) {
+  let it = this.byTotal.begin;
+  const result = [];
+  while (result.length < count && it.valid) {
+    it.value.forEach(key => {
+      if (result.length < count) {
+        result.push(this.byKey.get(key).element);
+      }
+    });
+    it.next();
+  }
+  return result;
 };
