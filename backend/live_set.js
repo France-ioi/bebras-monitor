@@ -146,7 +146,7 @@ LiveSet.prototype._extract = function (left, right) {
 };
 
 LiveSet.prototype.view = function (count) {
-  let it = this.byTotal.begin;
+  let it = this.byTotal.end;
   const result = [];
   while (result.length < count && it.valid) {
     it.value.forEach(key => {
@@ -154,7 +154,7 @@ LiveSet.prototype.view = function (count) {
         result.push(this.byKey.get(key).element);
       }
     });
-    it.next();
+    it.prev();
   }
   return result;
 };
