@@ -107,7 +107,7 @@ const {store, scope, start} = link(function* (deps) {
   function* refresh () {
     for (;;) {
       yield take(deps.refresh);
-      let entries = yield call(asyncGetJson, '/top?count=3');
+      let entries = yield call(asyncGetJson, '/top?count=25');
       const timestamp = new Date();
       yield put({type: deps.updateTopEntries, entries});
       yield put({type: deps.refreshDone, timestamp});
