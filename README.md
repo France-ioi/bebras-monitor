@@ -3,7 +3,7 @@
 
 Install dependencies:
 
-    npm install -g jspm
+    npm install -g jspm@beta
     npm install
     jspm install
 
