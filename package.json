@@ -20,7 +20,7 @@
     "build": "jspm build frontend/index.js build/index.js",
     "develop": "NODE_ENV=development node backend/index.js",
     "start": "NODE_ENV=production node backend/index.js",
-    "worker": "babel-watch --use-polling backend/worker.js",
+    "worker": "babel-watch --use-polling worker/index.js",
     "flow": "flow"
   },
   "jspm": {
