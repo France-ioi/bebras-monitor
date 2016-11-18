@@ -19,7 +19,7 @@
     "bundle-deps": "jspm bundle --minify 'frontend/**/*' - '[frontend/**/*]' build/dependency-bundle.js",
     "build": "jspm build frontend/index.js build/index.js",
     "develop": "NODE_ENV=development babel-watch --use-polling backend/index.js",
-    "start": "NODE_ENV=production node backend/index.js",
+    "start": "NODE_ENV=production LISTEN=8001 babel-node backend/index.js",
     "flow": "flow"
   },
   "jspm": {
@@ -28,6 +28,8 @@
       "jspm": "frontend/jspm-0.17.config.js"
     },
     "dependencies": {
+      "babel-helper-builder-react-jsx": "npm:babel-helper-builder-react-jsx@^6.18.0",
+      "babel-plugin-syntax-jsx": "npm:babel-plugin-syntax-jsx@^6.18.0",
       "bootstrap-sass": "npm:bootstrap-sass@^3.3.7",
       "classnames": "npm:classnames@^2.2.5",
       "epic-component": "npm:epic-component@^0.3.1",
@@ -39,7 +41,8 @@
       "react-bootstrap": "npm:react-bootstrap@^0.30.6",
       "react-redux": "npm:react-redux@^4.4.5",
       "scss": "github:mobilexag/plugin-sass@^0.5.0",
-      "superagent": "npm:superagent@^2.3.0"
+      "superagent": "npm:superagent@^2.3.0",
+      "systemjs-plugin-babel": "npm:systemjs-plugin-babel@^0.0.17"
     },
     "devDependencies": {
       "babel": "npm:babel-core@^6.0.0",
@@ -65,7 +68,7 @@
       "path": "npm:jspm-nodelibs-path@^0.2.0",
       "process": "npm:jspm-nodelibs-process@^0.2.0",
       "querystring": "npm:jspm-nodelibs-querystring@^0.2.0",
-      "react": "npm:react@^15.3.2",
+      "react": "npm:react@^15.4.0",
       "react-dom": "npm:react-dom@^15.3.2",
       "redux": "npm:redux@^3.6.0",
       "redux-saga": "npm:redux-saga@^0.12.1",
@@ -116,7 +119,7 @@
           "test.js"
         ]
       },
-      "npm:lodash@4.16.6": {
+      "npm:lodash@4.17.2": {
         "map": {
           "buffer": "@empty",
           "process": "@empty"
@@ -149,6 +152,7 @@
     "nodemon": "^1.11.0"
   },
   "dependencies": {
+    "babel-cli": "^6.18.0",
     "babel-runtime": "^6.18.0",
     "body-parser": "^1.15.0",
     "express": "^4.13.4",

@@ -5,9 +5,13 @@ import * as path from 'path';
 import * as http from 'http';
 import express from 'express';
 import bodyParser from 'body-parser';
+import compression from 'compression';
 import Redis from 'redis';
 
 import Worker from './worker';
+
+const isDevelopment = process.env.NODE_ENV !== 'production';
+console.log(`running in ${isDevelopment ? 'development' : 'production'} mode`);
 
 const rootDir = path.resolve(path.dirname(__dirname));
 const app = express();
@@ -16,25 +20,25 @@ const workerStore = Worker();
 
 app.set('view engine', 'pug');
 app.set('views', path.join(rootDir, 'backend', 'views'));
-
-const isDevelopment = process.env.NODE_ENV !== 'production';
-console.log(`running in ${isDevelopment ? 'development' : 'production'} mode`);
+if (!isDevelopment) {
+  app.use(compression());
+}
 
 const staticAssets = {
-  // Static files (no build step) are served at /assets
+  // Static files (no build step) are served at /assets.
   '/assets': {
     localPath: 'assets'
   },
-  // Built files (transpiled js, minified css, etc) are served at /build
+  // Built files (transpiled js, minified css, etc) are served at /build.
   '/build': {
     localPath: 'build'
   },
-  // The package manager files are served at /jspm_packages
+  // The package manager files are served at /jspm_packages.
+  // This is needed in production for dependency assets (fonts, images, css).
   '/jspm_packages': {
-    localPath: 'jspm_packages',
-    enabled: isDevelopment
+    localPath: 'jspm_packages'
   },
-  // Source frontend files are served at /src
+  // Source frontend files are served at /src.
   '/src': {
     localPath: 'frontend',
     enabled: isDevelopment
