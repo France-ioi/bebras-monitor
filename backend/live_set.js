@@ -134,9 +134,9 @@ LiveSet.prototype._extract = function (left, right) {
   const element = right.peekFirst();
   let newRight = right.removeFirst();
   if (!newRight.isEmpty()) {
-    const replacement = right.peekLast();
+    const replacement = newRight.peekLast();
     this.byKey = this.byKey.set(replacement.key, new Entry(position, replacement));
-    newRight = right.removeLast().addFirst(replacement);
+    newRight = newRight.removeLast().addFirst(replacement);
   }
   const key = element.key;
   this.byKey = this.byKey.delete(key);
