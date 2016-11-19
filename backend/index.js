@@ -67,6 +67,9 @@ app.get('/top', function (req, res) {
 });
 
 function onSignal (options, err) {
+  if (options.source === 'EXCEPT') {
+    console.log(err);
+  }
   if (options.dump) {
     const {liveSet} = workerStore.getState();
     const dump = liveSet.view();
