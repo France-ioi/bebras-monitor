@@ -48,7 +48,6 @@ const {store, scope, start} = link(function* (deps) {
   yield addSaga(refresh);
 
   yield addReducer('init', function (state, action) {
-    console.log('init');
     return {
       topEntries: []
     };
@@ -120,6 +119,5 @@ store.dispatch({type: scope.init});
 start();
 store.dispatch({type: scope.refresh});
 
-console.log('rendering');
 const container = document.getElementById('react-container');
 ReactDOM.render(<Provider store={store}><scope.App/></Provider>, container);
