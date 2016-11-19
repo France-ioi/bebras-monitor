@@ -82,6 +82,7 @@ function onSignal (options, err) {
 process.on('exit', onSignal.bind(null, {source: 'exit'}));
 process.on('SIGINT', onSignal.bind(null, {exit: true, status: 1, dump: true, source: 'INT'}));
 process.on('SIGHUP', onSignal.bind(null, {exit: true, status: 0, dump: true, source: 'HUP'}));
+process.on('SIGUSR1', onSignal.bind(null, {exit: false, dump: true, source: 'USR1'}));
 process.on('uncaughtException', onSignal.bind(null, {exit: true, status: 1, dump: 'alt', source: 'EXCEPT'}));
 
 try {
