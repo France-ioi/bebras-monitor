@@ -177,3 +177,14 @@ LiveSet.prototype.load = function (dump) {
   this.byKey = byKey;
   this.byTotal = byTotal;
 };
+
+LiveSet.prototype.prune = function (refTime) {
+  while (true) {
+    const lru = this.tree.measure().lru;
+    if (lru >= refTime) {
+      break;
+    }
+    const element = this.extractLru();
+    console.log('pruned', element.key);
+  }
+};
