@@ -8,6 +8,7 @@ import bluebird from 'bluebird';
 import Immutable from 'immutable';
 import fs from 'fs';
 
+import Ticker from './ticker';
 import LiveSet from './live_set';
 
 bluebird.promisifyAll(Redis.RedisClient.prototype);
@@ -46,6 +47,11 @@ function reducer (state, action) {
         const ejected = copy.extractMinTotal(); // or copy.extractLru();
         console.log('ejected', ejected)
       }
+    })};
+  case 'PRUNE_ENTRIES':
+    return {...state, liveSet: state.liveSet.mutated(function (copy) {
+      // Prune entries that haven't been touched in 1 hour.
+      copy.prune(Date.now() - 60 * 60 * 1000);
     })};
   default:
     return state;
@@ -113,10 +119,19 @@ function* fetchIpCounters (key, hexIp) {
   yield put({type: 'ADD_ENTRY', entry});
 }
 
+function* minuteCron () {
+  const channel = Ticker(60 * 1000);
+  while (true) {
+    yield take(channel);
+    yield put({type: 'PRUNE_ENTRIES'});
+  }
+}
+
 function* mainSaga () {
   yield take('START');
   yield fork(followActivityQueue);
   yield fork(fetchCounters);
+  yield fork(minuteCron);
 }
 
 export default function start () {
