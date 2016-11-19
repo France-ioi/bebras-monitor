@@ -6,6 +6,7 @@ import {call, cps, select, put, take, fork} from 'redux-saga/effects'
 import Redis from 'redis';
 import bluebird from 'bluebird';
 import Immutable from 'immutable';
+import fs from 'fs';
 
 import LiveSet from './live_set';
 
@@ -34,6 +35,11 @@ function reducer (state, action) {
       liveSet: new LiveSet(),
       liveSetCapacity: 1000
     };
+  case 'LOAD':
+    return {...state, liveSet: state.liveSet.mutated(function (copy) {
+      copy.load(action.dump)
+      console.log(`loaded ${copy.tree.length} entries`);
+    })};
   case 'ADD_ENTRY':
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
       copy.set(action.entry);
@@ -109,6 +115,7 @@ function* fetchIpCounters (key, hexIp) {
 }
 
 function* mainSaga () {
+  yield take('START');
   yield fork(followActivityQueue);
   yield fork(fetchCounters);
 }

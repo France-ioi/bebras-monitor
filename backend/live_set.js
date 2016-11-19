@@ -146,8 +146,11 @@ LiveSet.prototype._extract = function (left, right) {
 };
 
 LiveSet.prototype.view = function (count) {
-  let it = this.byTotal.end;
   const result = [];
+  if (count === undefined) {
+    count = this.tree.measure().size;
+  }
+  let it = this.byTotal.end;
   while (result.length < count && it.valid) {
     it.value.forEach(key => {
       if (result.length < count) {
@@ -157,4 +160,20 @@ LiveSet.prototype.view = function (count) {
     it.prev();
   }
   return result;
+};
+
+LiveSet.prototype.load = function (dump) {
+  let tree = this.tree;
+  let byKey = this.byKey;
+  let byTotal = this.byTotal;
+  dump.forEach(element => {
+    const {key, total} = element;
+    const position = this.tree.measure().size;
+    tree = tree.addLast(element);
+    byKey = byKey.set(element.key, new Entry(position, element));
+    byTotal = _indexAdd(byTotal, total, key);
+  });
+  this.tree = tree;
+  this.byKey = byKey;
+  this.byTotal = byTotal;
 };

@@ -65,7 +65,33 @@ app.get('/top', function (req, res) {
   res.json(liveSet.view(parseInt(req.query.count)));
 });
 
-//   return redis.mget(keys, function (err, values) {...}
+function onSignal (options, err) {
+  console.log(`${process.pid}: onExit`, JSON.stringify(options), err);
+  if (options.dump) {
+    const {liveSet} = workerStore.getState();
+    const dump = liveSet.view();
+    const dumpStr = JSON.stringify(dump);
+    const dumpFn = options.dump === 'alt' ? 'alt_dump.json' : 'dump.json';
+    fs.writeFileSync(dumpFn, dumpStr, 'utf8');
+    console.log(`(not) saved ${dump.length} entries`);
+  }
+  if (options.exit) {
+    process.exit(options.status || 0);
+  }
+}
+process.on('exit', onSignal.bind(null, {source: 'exit'}));
+process.on('SIGINT', onSignal.bind(null, {exit: true, status: 1, dump: true, source: 'INT'}));
+process.on('SIGHUP', onSignal.bind(null, {exit: true, status: 0, dump: true, source: 'HUP'}));
+process.on('uncaughtException', onSignal.bind(null, {exit: true, status: 1, dump: 'alt', source: 'EXCEPT'}));
+
+try {
+  const dumpStr = fs.readFileSync('dump.json', 'utf8');
+  const dump = JSON.parse(dumpStr);
+  workerStore.dispatch({type: 'LOAD', dump});
+  workerStore.dispatch({type: 'START'});
+} catch (ex) {
+  console.log('no dump found', ex);
+}
 
 const server = http.createServer(app);
 const listen = process.env.LISTEN || 8001;
