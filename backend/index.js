@@ -98,4 +98,4 @@ try {
 const server = http.createServer(app);
 const listen = process.env.LISTEN || 8001;
 server.listen(listen);
-console.log(`listening on ${colors.bold(listen)}`);
+console.log(`PID ${process.pid} listening on ${colors.bold(listen)}`);
