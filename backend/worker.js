@@ -38,7 +38,6 @@ function reducer (state, action) {
   case 'LOAD':
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
       copy.load(action.dump)
-      console.log(`loaded ${copy.tree.length} entries`);
     })};
   case 'ADD_ENTRY':
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
@@ -71,7 +70,7 @@ function* followActivityQueue () {
     // lpop returns the key, or null
     key = yield cps([redis, redis.lpop], 'activity_queue');
     if (!key) {
-      console.log(`queue is empty after ${count} keys`);
+      // console.log(`queue is empty after ${count} keys`);
       count = 0;
       // blpop returns [queue, value]
       let res = yield cps([redis, redis.blpop], 'activity_queue', 0);

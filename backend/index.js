@@ -7,11 +7,12 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import compression from 'compression';
 import Redis from 'redis';
+import colors from 'colors/safe';
 
 import Worker from './worker';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
-console.log(`running in ${isDevelopment ? 'development' : 'production'} mode`);
+console.log(`running in ${isDevelopment ? colors.red('development') : colors.green('production')} mode`);
 
 const rootDir = path.resolve(path.dirname(__dirname));
 const app = express();
@@ -50,7 +51,7 @@ Object.keys(staticAssets).forEach(function (urlPath) {
     return;
   }
   let fullPath = path.join(rootDir, options.localPath);
-  console.log('static', urlPath, fullPath);
+  // console.log('static', urlPath, fullPath);
   app.use(urlPath, express.static(fullPath));
 });
 
@@ -66,14 +67,13 @@ app.get('/top', function (req, res) {
 });
 
 function onSignal (options, err) {
-  console.log(`${process.pid}: onExit`, JSON.stringify(options), err);
   if (options.dump) {
     const {liveSet} = workerStore.getState();
     const dump = liveSet.view();
     const dumpStr = JSON.stringify(dump);
     const dumpFn = options.dump === 'alt' ? 'alt_dump.json' : 'dump.json';
     fs.writeFileSync(dumpFn, dumpStr, 'utf8');
-    console.log(`(not) saved ${dump.length} entries`);
+    console.log(colors.green(`saved ${dump.length} entries`));
   }
   if (options.exit) {
     process.exit(options.status || 0);
@@ -88,12 +88,14 @@ try {
   const dumpStr = fs.readFileSync('dump.json', 'utf8');
   const dump = JSON.parse(dumpStr);
   workerStore.dispatch({type: 'LOAD', dump});
+  const count = workerStore.getState().liveSet.size();
+  console.log(colors.green(`loaded ${count} entries`));
   workerStore.dispatch({type: 'START'});
 } catch (ex) {
-  console.log('no dump found', ex);
+  console.log(colors.red('no dump found'), ex);
 }
 
 const server = http.createServer(app);
 const listen = process.env.LISTEN || 8001;
 server.listen(listen);
-console.log(`listening on ${listen}`);
+console.log(`listening on ${colors.bold(listen)}`);
