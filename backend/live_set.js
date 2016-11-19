@@ -10,7 +10,7 @@ function Measure (size, minTotal, maxTotal, lru) {
   this.lru = lru;
 }
 
-const identity = new Measure(0, Infinity, -Infinity);
+const identity = new Measure(0, Infinity, -Infinity, Infinity);
 
 const measurer = {
   identity: () => identity,
