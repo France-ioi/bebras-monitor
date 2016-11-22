@@ -94,10 +94,10 @@ try {
   workerStore.dispatch({type: 'LOAD', dump});
   const count = workerStore.getState().liveSet.size();
   console.log(colors.green(`loaded ${count} entries`));
-  workerStore.dispatch({type: 'START'});
 } catch (ex) {
   console.log(colors.red('no dump found'), ex);
 }
+workerStore.dispatch({type: 'START'});
 
 const server = http.createServer(app);
 const listen = process.env.LISTEN || 8001;
