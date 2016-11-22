@@ -3,7 +3,7 @@ import React from 'react';
 import {Button} from 'react-bootstrap';
 import ReactDOM from 'react-dom';
 import {Provider} from 'react-redux';
-import {call, cps, select, put, take, fork} from 'redux-saga/effects'
+import {call, cps, select, put, take, fork} from 'redux-saga/effects';
 import EpicComponent from 'epic-component';
 import {link, defineAction, defineSelector, defineView, addReducer, addSaga} from 'epic-linker';
 import request from 'superagent';
@@ -76,6 +76,7 @@ const {store, scope, start} = link(function* (deps) {
       const {key, ip, total, domains} = entry;
       return (
         <div className="entry-table" key={key}>
+          <span className="entry-key">{key}</span>
           <span className="entry-ip number">{ip}</span>
           <span className="entry-total number">{total}</span>
           <span className="entry-domain number">
