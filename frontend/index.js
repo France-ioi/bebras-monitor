@@ -78,6 +78,7 @@ const {store, scope, start} = link(function* (deps) {
         <div className="entry-table">
           <span className="entry-ip number">{entry.ip}</span>
           <span className="entry-total number">{entry.total}</span>
+          {entry.domains && <span className="entry-domain number">{entry.domains.join(',')}</span>}
         </div>
       );
     };
