@@ -8,8 +8,6 @@ import EpicComponent from 'epic-component';
 import {link, defineAction, defineSelector, defineView, addReducer, addSaga} from 'epic-linker';
 import request from 'superagent';
 
-import 'font-awesome/css/font-awesome.min.css!';
-import 'normalize.css!';
 import './style.scss!';
 
 export const asyncGetJson = function (path) {
