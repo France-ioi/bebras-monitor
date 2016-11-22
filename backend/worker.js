@@ -39,7 +39,7 @@ function reducer (state, action) {
     };
   case 'LOAD':
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
-      copy.load(action.dump)
+      copy.load(action.dump);
     })};
   case 'SET_ENTRY':
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
