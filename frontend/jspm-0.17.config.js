@@ -224,6 +224,7 @@ SystemJS.config({
     "plugin-sass": "npm:plugin-sass@0.0.1-security",
     "process": "npm:jspm-nodelibs-process@0.2.0",
     "querystring": "npm:jspm-nodelibs-querystring@0.2.0",
+    "redux-saga-ticker": "npm:redux-saga-ticker@1.0.1",
     "stream": "npm:jspm-nodelibs-stream@0.2.0",
     "string_decoder": "npm:jspm-nodelibs-string_decoder@0.2.0",
     "systemjs-plugin-babel": "npm:systemjs-plugin-babel@0.0.17",
@@ -242,7 +243,7 @@ SystemJS.config({
     "react-dom": "npm:react-dom@15.4.0",
     "react-redux": "npm:react-redux@4.4.6",
     "redux": "npm:redux@3.6.0",
-    "redux-saga": "npm:redux-saga@0.12.1",
+    "redux-saga": "npm:redux-saga@0.13.0",
     "scss": "github:mobilexag/plugin-sass@0.5.0",
     "superagent": "npm:superagent@2.3.0"
   },
@@ -776,9 +777,6 @@ SystemJS.config({
         "warning": "npm:warning@3.0.0"
       }
     },
-    "npm:redux-saga@0.12.1": {
-      "map": {}
-    },
     "npm:redux@3.6.0": {
       "map": {
         "lodash": "npm:lodash@4.17.2",
@@ -911,6 +909,11 @@ SystemJS.config({
         "babel-runtime": "npm:babel-runtime@6.18.0",
         "to-fast-properties": "npm:to-fast-properties@1.0.2",
         "esutils": "npm:esutils@2.0.2"
+      }
+    },
+    "npm:redux-saga-ticker@1.0.1": {
+      "map": {
+        "babel-runtime": "npm:babel-runtime@6.18.0"
       }
     }
   }

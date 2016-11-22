@@ -9,6 +9,7 @@ import {link, defineAction, defineSelector, defineView, addReducer, addSaga} fro
 import request from 'superagent';
 
 import './style.scss!';
+import Ticker from 'redux-saga-ticker';
 
 export const asyncGetJson = function (path) {
   return new Promise(function (resolve, reject) {
@@ -115,6 +116,14 @@ const {store, scope, start} = link(function* (deps) {
       yield put({type: deps.refreshDone, timestamp});
     }
   }
+
+  yield addSaga(function* autoRefresh () {
+    const channel = Ticker(3000);
+    while (true) {
+      yield take(channel);
+      yield put({type: deps.refresh});
+    }
+  });
 
 });
 

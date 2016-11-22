@@ -3,13 +3,13 @@ import {createStore, applyMiddleware} from 'redux';
 import {END} from 'redux-saga';
 import sagaMiddlewareFactory from 'redux-saga';
 import {call, cps, select, put, take, fork} from 'redux-saga/effects'
+import Ticker from 'redux-saga-ticker';
 import Redis from 'redis';
 import bluebird from 'bluebird';
 import Immutable from 'immutable';
 import fs from 'fs';
 import dns from 'dns';
 
-import Ticker from './ticker';
 import LiveSet from './live_set';
 
 bluebird.promisifyAll(Redis.RedisClient.prototype);
