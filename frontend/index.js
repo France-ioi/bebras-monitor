@@ -74,11 +74,15 @@ const {store, scope, start} = link(function* (deps) {
     };
 
     const renderEntry = function (entry) {
+      const {ip, total, domains} = entry;
       return (
         <div className="entry-table">
-          <span className="entry-ip number">{entry.ip}</span>
-          <span className="entry-total number">{entry.total}</span>
-          {entry.domains && <span className="entry-domain number">{entry.domains.join(',')}</span>}
+          <span className="entry-ip number">{ip}</span>
+          <span className="entry-total number">{total}</span>
+          <span className="entry-domain number">
+            {domains === undefined ? 'unknown' :
+             domains === false ? 'not found' :
+             domains.join(',')}</span>
         </div>
       );
     };

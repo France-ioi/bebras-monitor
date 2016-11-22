@@ -132,13 +132,18 @@ function* fetchIpCounters (key, hexIp) {
     entry.total += value;
   });
   yield put({type: 'SET_ENTRY', entry});
-  if (typeof entry.reverse !== 'string') {
+  if (!entry.hasOwnProperty('domains')) {
     yield fork(reverseLookup, key, ipStr);
   }
 }
 
 function* reverseLookup (key, ip) {
-  const domains = yield cps(dns.reverse, ip);
+  let domains;
+  try {
+    domains = yield cps(dns.reverse, ip);
+  } catch (ex) {
+    domains = false;
+  }
   yield put({type: 'UPDATE_ENTRY', key, update: {domains}});
 }
 
