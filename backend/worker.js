@@ -7,6 +7,7 @@ import Redis from 'redis';
 import bluebird from 'bluebird';
 import Immutable from 'immutable';
 import fs from 'fs';
+import dns from 'dns';
 
 import Ticker from './ticker';
 import LiveSet from './live_set';
@@ -40,7 +41,7 @@ function reducer (state, action) {
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
       copy.load(action.dump)
     })};
-  case 'ADD_ENTRY':
+  case 'SET_ENTRY':
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
       copy.set(action.entry);
       if (copy.size() > state.liveSetCapacity) {
@@ -48,6 +49,17 @@ function reducer (state, action) {
         console.log('ejected', ejected)
       }
     })};
+  case 'UPDATE_ENTRY':
+    {
+      const {key, update} = action;
+      const oldEntry = state.liveSet.get(key);
+      if (!oldEntry) {
+        return state;
+      }
+      return {...state, liveSet: state.liveSet.mutated(function (copy) {
+        copy.set({...oldEntry, ...update});
+      })};
+    }
   case 'PRUNE_ENTRIES':
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
       // Prune entries that haven't been touched in 1 hour.
@@ -106,7 +118,10 @@ function* fetchCounters () {
 function* fetchIpCounters (key, hexIp) {
   const ip = hexToBytes(hexIp);
   const ipStr = ip.join('.');
-  const entry = {key: key, ip: ipStr, updatedAt: Date.now(), total: 0};
+  const now = Date.now();
+  // Preserve any data stored in the previous entry.
+  const prevEntry = yield select(getElementByKey, key);
+  const entry = prevEntry ? {...prevEntry, updatedAt: now} : {key: key, ip: ipStr, total: 0, updatedAt: now};
   const counterKeys = Object.keys(PerIpKeys);
   const keys = counterKeys.map(ckey => `c.${key}.${PerIpKeys[ckey]}`);
   const counters = yield cps([redis, redis.mget], keys);
@@ -116,7 +131,15 @@ function* fetchIpCounters (key, hexIp) {
     entry[ckey] = value;
     entry.total += value;
   });
-  yield put({type: 'ADD_ENTRY', entry});
+  yield put({type: 'SET_ENTRY', entry});
+  if (typeof entry.reverse !== 'string') {
+    yield fork(reverseLookup, key, ipStr);
+  }
+}
+
+function* reverseLookup (key, ip) {
+  const domains = yield cps(dns.reverse, ip);
+  yield put({type: 'UPDATE_ENTRY', key, update: {domains}});
 }
 
 function* minuteCron () {
