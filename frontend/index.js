@@ -72,9 +72,9 @@ const {store, scope, start} = link(function* (deps) {
     };
 
     const renderEntry = function (entry) {
-      const {ip, total, domains} = entry;
+      const {key, ip, total, domains} = entry;
       return (
-        <div className="entry-table">
+        <div className="entry-table" key={key}>
           <span className="entry-ip number">{ip}</span>
           <span className="entry-total number">{total}</span>
           <span className="entry-domain number">
