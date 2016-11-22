@@ -4,12 +4,15 @@ import {Button} from 'react-bootstrap';
 import ReactDOM from 'react-dom';
 import {Provider} from 'react-redux';
 import {call, cps, select, put, take, fork} from 'redux-saga/effects';
+import Ticker from 'redux-saga-ticker';
 import EpicComponent from 'epic-component';
-import {link, defineAction, defineSelector, defineView, addReducer, addSaga} from 'epic-linker';
+import {link, include, defineAction, defineSelector, defineView, addReducer, addSaga, use} from 'epic-linker';
 import request from 'superagent';
 
+import WindowActive from './window_active';
+
 import './style.scss!';
-import Ticker from 'redux-saga-ticker';
+
 
 export const asyncGetJson = function (path) {
   return new Promise(function (resolve, reject) {
@@ -44,14 +47,13 @@ const {store, scope, start} = link(function* (deps) {
   yield defineAction('refreshDone', 'App.Refresh.Done');
   yield defineAction('updateTopEntries', 'TopEntries.Update');
 
-  yield addSaga(refresh);
-
   yield addReducer('init', function (state, action) {
     return {
       topEntries: []
     };
   });
 
+  yield addSaga(refresh);
   yield addReducer('refreshDone', function (state, action) {
     return {...state, refreshedAt: action.timestamp};
   });
@@ -59,6 +61,16 @@ const {store, scope, start} = link(function* (deps) {
   yield addReducer('updateTopEntries', function (state, action) {
     const {entries} = action;
     return {...state, topEntries: entries};
+  });
+
+  yield include(WindowActive);
+  yield use('setWindowActive');
+  yield addReducer('setWindowActive', function (state, action) {
+    const {isActive} = action;
+    return {...state, isActive};
+  });
+  yield defineSelector('isWindowActive', function (state) {
+    return state.isActive;
   });
 
   yield defineSelector('AppSelector', function (state, props) {
@@ -122,7 +134,10 @@ const {store, scope, start} = link(function* (deps) {
     const channel = Ticker(3000);
     while (true) {
       yield take(channel);
-      yield put({type: deps.refresh});
+      let isActive = yield select(deps.isWindowActive);
+      if (isActive) {
+        yield put({type: deps.refresh});
+      }
     }
   });
 
