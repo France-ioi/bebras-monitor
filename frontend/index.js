@@ -1,10 +1,11 @@
 
 import React from 'react';
-import {Button} from 'react-bootstrap';
+import {Nav, NavItem, Button} from 'react-bootstrap';
 import ReactDOM from 'react-dom';
 import {Provider} from 'react-redux';
 import {call, cps, select, put, take, fork} from 'redux-saga/effects';
 import Ticker from 'redux-saga-ticker';
+import classnames from 'classnames';
 import EpicComponent from 'epic-component';
 import {link, include, defineAction, defineSelector, defineView, addReducer, addSaga, use} from 'epic-linker';
 import request from 'superagent';
@@ -49,7 +50,8 @@ const {store, scope, start} = link(function* (deps) {
 
   yield addReducer('init', function (state, action) {
     return {
-      topEntries: []
+      topEntries: [],
+      activeTabKey: 'activity'
     };
   });
 
@@ -73,12 +75,69 @@ const {store, scope, start} = link(function* (deps) {
     return state.isActive;
   });
 
+
+  yield defineAction('setActiveTab', 'App.ActiveTab.Set');
+  yield addReducer('setActiveTab', function (state, action) {
+    const {key} = action;
+    return {...state, activeTabKey: key};
+  });
+
   yield defineSelector('AppSelector', function (state, props) {
-    const {refreshedAt, topEntries} = state;
-    return {refreshedAt, topEntries};
+    const {activeTabKey} = state;
+    return {activeTabKey};
   });
 
   yield defineView('App', 'AppSelector', EpicComponent(self => {
+
+    const setActiveTab = function (key) {
+      self.props.dispatch({type: deps.setActiveTab, key});
+    };
+
+    self.render = function () {
+      const {activeTabKey} = self.props;
+      const enabledTabs = {activity: true, blacklist: true};
+      let content = false;
+      switch (activeTabKey) {
+        case 'activity':
+          content = <deps.ActivityTab/>;
+          break;
+        /*case 'blacklist':
+          content = <deps.BlacklistTab/>;
+          break;*/
+      }
+      return (
+        <div className="container">
+          <div id="header">
+            <deps.Tabs activeTabKey={activeTabKey} enabledTabs={enabledTabs} onSelect={setActiveTab} />
+          </div>
+          <div id="content">{content}</div>
+        </div>);
+    };
+
+  }));
+
+  yield defineView('Tabs', EpicComponent(self => {
+    const tabs = [
+      {key: 'activity', label: "Activity"},
+      {key: 'blacklist', label: "Blacklist"}
+    ];
+    self.render = function () {
+      let {activeTabKey, enabledTabs, onSelect} = self.props;
+      const items = tabs.map(function (tab) {
+        const {key, label} = tab;
+        const enabled = enabledTabs[tab.key];
+        return <NavItem key={key} eventKey={key} disabled={!enabled}>{label}</NavItem>;
+      });
+      return <Nav bsStyle="pills" onSelect={onSelect} activeKey={activeTabKey}>{items}</Nav>;
+    };
+  }));
+
+  yield defineSelector('ActivityTabSelector', function (state, props) {
+    const {refreshedAt, topEntries, isActive} = state;
+    return {refreshedAt, topEntries, isActive};
+  });
+
+  yield defineView('ActivityTab', 'ActivityTabSelector', EpicComponent(self => {
 
     const onRefresh = function () {
       self.props.dispatch({type: deps.refresh});
@@ -100,13 +159,13 @@ const {store, scope, start} = link(function* (deps) {
     };
 
     self.render = function () {
-      const {refreshedAt, topEntries} = self.props;
+      const {refreshedAt, topEntries, isActive} = self.props;
       return (
-        <div className="container">
+        <div>
           <div id="top" className="row">
             <div className="pull-right">
               {refreshedAt && <span className="refreshedAt">refreshed at {refreshedAt.toISOString()}</span>}
-              <Button onClick={onRefresh}><i className="fa fa-refresh"/></Button>
+              <Button onClick={onRefresh} bsStyle={isActive ? 'default' : 'primary'}><i className="fa fa-refresh"/></Button>
             </div>
           </div>
           <div className="row">
