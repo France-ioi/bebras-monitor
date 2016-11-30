@@ -16,7 +16,7 @@
   },
   "scripts": {
     "bundle-build": "jspm bundle --minify babel + postcss + scss build/build-bundle.js",
-    "bundle-deps": "jspm bundle --minify 'frontend/**/*' - '[frontend/**/*]' - '[bebras-monitor/**/*.scss!scss]' build/dependency-bundle.js",
+    "bundle-deps": "jspm bundle --minify 'frontend/**/*' - '[frontend/**/*]' - '[bebras-monitor/style.scss!scss]' build/dependency-bundle.js",
     "build": "jspm build frontend/index.js build/index.js",
     "develop": "NODE_ENV=development babel-watch --use-polling backend/index.js",
     "start": "NODE_ENV=production LISTEN=8001 babel-node backend/index.js",

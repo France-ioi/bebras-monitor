@@ -12,6 +12,7 @@ import WindowActive from './window_active';
 import Refresh from './refresh';
 
 import 'normalize.css!';
+import './base.scss!';
 import './style.scss!';
 
 const {store, scope, start} = link(function* (deps) {
