@@ -61,9 +61,14 @@ app.get('/', function (req, res) {
   res.render('index', {development: isDevelopment});
 });
 
-app.get('/top', function (req, res) {
+app.get('/refresh', function (req, res) {
   const {liveSet} = workerStore.getState();
-  res.json(liveSet.view(parseInt(req.query.count)));
+  const {max_top_entries} = req.query;
+  const view = {};
+  if (max_top_entries) {
+    view.topEntries = liveSet.getTopEntries(parseInt(max_top_entries));
+  }
+  res.json(view);
 });
 
 function onSignal (options, err) {
@@ -72,7 +77,7 @@ function onSignal (options, err) {
   }
   if (options.dump) {
     const {liveSet} = workerStore.getState();
-    const dump = liveSet.view();
+    const dump = liveSet.dump();
     const dumpStr = JSON.stringify(dump);
     const dumpFn = options.dump === 'alt' ? 'alt_dump.json' : 'dump.json';
     fs.writeFileSync(dumpFn, dumpStr, 'utf8');

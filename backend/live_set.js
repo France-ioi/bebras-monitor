@@ -138,14 +138,14 @@ LiveSet.prototype._extract = function (left, right) {
     this.byKey = this.byKey.set(replacement.key, new Entry(position, replacement));
     newRight = newRight.removeLast().addFirst(replacement);
   }
-  const key = element.key;
+  const {key, total} = element;
   this.byKey = this.byKey.delete(key);
   this.tree = left.concat(newRight);
-  this.byTotal = _indexRemove(this.byTotal, element.total, key);
+  this.byTotal = _indexRemove(this.byTotal, total, key);
   return element;
 };
 
-LiveSet.prototype.view = function (count) {
+LiveSet.prototype.getTopEntries = function (count) {
   const result = [];
   if (count === undefined) {
     count = this.tree.measure().size;
@@ -154,10 +154,19 @@ LiveSet.prototype.view = function (count) {
   while (result.length < count && it.valid) {
     it.value.forEach(key => {
       if (result.length < count) {
-        result.push(this.byKey.get(key).element);
+        const entry = this.byKey.get(key);
+        result.push(entry.element);
       }
     });
     it.prev();
+  }
+  return result;
+};
+
+LiveSet.prototype.dump = function () {
+  const result = [];
+  for (let entry of this.tree) {
+    result.push(entry);
   }
   return result;
 };

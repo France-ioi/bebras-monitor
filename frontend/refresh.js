@@ -1,5 +1,9 @@
 
-import {defineAction, addSaga, addReducer, use} from 'epic-linker';
+import {use, defineAction, defineSelector, defineView, addSaga, addReducer} from 'epic-linker';
+import EpicComponent from 'epic-component';
+import React from 'react';
+import classnames from 'classnames';
+import {Button} from 'react-bootstrap';
 import {call, select, put, take} from 'redux-saga/effects';
 import Ticker from 'redux-saga-ticker';
 
@@ -10,11 +14,23 @@ export default function* (deps) {
   yield defineAction('refresh', 'Refresh');
   yield addSaga(function* refresh () {
     for (;;) {
-      yield take(deps.refresh);
-      let entries = yield call(asyncGetJson, '/top?count=25');
       const timestamp = new Date();
-      yield put({type: deps.updateTopEntries, entries});
-      yield put({type: deps.refreshDone, timestamp});
+      yield take(deps.refresh);
+      try {
+        yield put({type: deps.refreshStarted});
+        const {topEntries} = yield call(asyncGetJson, '/refresh?max_top_entries=25');
+        yield put({type: deps.updateTopEntries, entries: topEntries});
+        yield put({type: deps.refreshDone, timestamp});
+      } catch (ex) {
+        console.log('backend refresh failed', ex);
+        let message;
+        if (ex.res) {
+          message = `${ex.res.statusCode} ${ex.res.statusText}`;
+        } else {
+          message = ex.toString();
+        }
+        yield put({type: deps.refreshFailed, timestamp, message});
+      }
     }
   });
 
@@ -24,11 +40,22 @@ export default function* (deps) {
     return {...state, topEntries: entries};
   });
 
-  yield defineAction('refreshDone', 'Refresh.Done');
-  yield addReducer('refreshDone', function (state, action) {
-    return {...state, refreshedAt: action.timestamp};
+  yield defineAction('refreshStarted', 'Refresh.Started');
+  yield addReducer('refreshStarted', function (state, action) {
+    return {...state, refreshPending: true};
   });
 
+  yield defineAction('refreshDone', 'Refresh.Done');
+  yield addReducer('refreshDone', function (state, action) {
+    return {...state, refreshPending: false, refreshError: false, refreshedAt: action.timestamp};
+  });
+
+  yield defineAction('refreshFailed', 'Refresh.Failed');
+  yield addReducer('refreshFailed', function (state, action) {
+    return {...state, refreshPending: false, refreshError: action.message, refreshedAt: action.timestamp};
+  });
+
+  // Automatically refresh every 3s if the window is active.
   yield use('isWindowActive');
   yield addSaga(function* autoRefresh () {
     const channel = Ticker(3000);
@@ -40,5 +67,33 @@ export default function* (deps) {
       }
     }
   });
+
+  yield defineSelector('RefreshSelector', function (state, props) {
+    const {refreshPending, refreshedAt, refreshError, isActive} = state;
+    return {refreshPending, refreshedAt, refreshError, isActive};
+  });
+
+  yield defineView('Refresh', 'RefreshSelector', EpicComponent(self => {
+
+    const onRefresh = function () {
+      self.props.dispatch({type: deps.refresh});
+    };
+
+    self.render = function () {
+      const {refreshPending, refreshedAt, refreshError, isActive} = self.props;
+      return (
+        <div className="refresh-control">
+          {refreshedAt &&
+            (refreshError
+              ? <span className="refreshedAt refreshError" title={refreshError}>refresh failed at {refreshedAt.toISOString()}</span>
+              : <span className="refreshedAt">refreshed at {refreshedAt.toISOString()}</span>)}
+          <Button onClick={onRefresh} bsStyle={isActive ? 'default' : 'primary'}>
+            <i className={classnames(['fa', 'fa-refresh', refreshPending && 'fa-spin'])}/>
+          </Button>
+        </div>
+      );
+    };
+
+  }));
 
 };

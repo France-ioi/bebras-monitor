@@ -13,8 +13,12 @@ body {
 }
 .refreshedAt {
   font-size: 8px;
-  color: #888;
+  color: #4c4;
   margin: 0 8px;
+}
+.refreshError {
+  color: #c00;
+  font-weight: bold;
 }
 
 .number {
