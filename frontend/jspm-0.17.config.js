@@ -194,6 +194,14 @@ SystemJS.config({
         "babel-helper-builder-react-jsx": "npm:babel-helper-builder-react-jsx@6.18.0",
         "babel-plugin-syntax-jsx": "npm:babel-plugin-syntax-jsx@6.18.0"
       }
+    },
+    "npm:postcss@5.2.5": {
+      "map": {
+        "chalk": "npm:chalk@1.1.3",
+        "js-base64": "npm:js-base64@2.1.9",
+        "source-map": "npm:source-map@0.5.6",
+        "supports-color": "npm:supports-color@3.1.2"
+      }
     }
   }
 });
@@ -222,6 +230,7 @@ SystemJS.config({
     "os": "npm:jspm-nodelibs-os@0.2.0",
     "path": "npm:jspm-nodelibs-path@0.2.1",
     "plugin-sass": "npm:plugin-sass@0.0.1-security",
+    "postcss": "npm:postcss@5.2.6",
     "process": "npm:jspm-nodelibs-process@0.2.0",
     "querystring": "npm:jspm-nodelibs-querystring@0.2.0",
     "redux-saga-ticker": "npm:redux-saga-ticker@1.0.1",
@@ -505,7 +514,7 @@ SystemJS.config({
         "css-asset-copier": "npm:css-asset-copier@1.0.2",
         "css-url-rewriter-ex": "npm:css-url-rewriter-ex@1.0.6",
         "lodash": "npm:lodash@4.17.2",
-        "postcss": "npm:postcss@5.2.5",
+        "postcss": "npm:postcss@5.2.6",
         "reqwest": "github:ded/reqwest@2.0.5",
         "sass.js": "npm:sass.js@0.9.13",
         "url": "npm:jspm-nodelibs-url@0.2.0",
@@ -525,7 +534,7 @@ SystemJS.config({
         "caniuse-db": "npm:caniuse-db@1.0.30000584",
         "normalize-range": "npm:normalize-range@0.1.2",
         "num2fraction": "npm:num2fraction@1.2.2",
-        "postcss": "npm:postcss@5.2.5",
+        "postcss": "npm:postcss@5.2.6",
         "postcss-value-parser": "npm:postcss-value-parser@3.3.0",
         "systemjs-json": "github:systemjs/plugin-json@0.1.2"
       }
@@ -727,14 +736,6 @@ SystemJS.config({
     "npm:path-is-absolute@1.0.1": {
       "map": {}
     },
-    "npm:postcss@5.2.5": {
-      "map": {
-        "chalk": "npm:chalk@1.1.3",
-        "js-base64": "npm:js-base64@2.1.9",
-        "source-map": "npm:source-map@0.5.6",
-        "supports-color": "npm:supports-color@3.1.2"
-      }
-    },
     "npm:process-nextick-args@1.0.7": {
       "map": {}
     },
@@ -914,6 +915,14 @@ SystemJS.config({
     "npm:redux-saga-ticker@1.0.1": {
       "map": {
         "babel-runtime": "npm:babel-runtime@6.18.0"
+      }
+    },
+    "npm:postcss@5.2.6": {
+      "map": {
+        "supports-color": "npm:supports-color@3.1.2",
+        "chalk": "npm:chalk@1.1.3",
+        "source-map": "npm:source-map@0.5.6",
+        "js-base64": "npm:js-base64@2.1.9"
       }
     }
   }

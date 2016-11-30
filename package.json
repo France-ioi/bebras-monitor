@@ -15,8 +15,8 @@
     "url": "https://github.com/France-ioi/bebras-monitor/issues"
   },
   "scripts": {
-    "bundle-babel": "jspm bundle --minify babel build/babel-bundle.js",
-    "bundle-deps": "jspm bundle --minify 'frontend/**/*' - '[frontend/**/*]' build/dependency-bundle.js",
+    "bundle-build": "jspm bundle --minify babel + postcss + scss build/build-bundle.js",
+    "bundle-deps": "jspm bundle --minify 'frontend/**/*' - '[frontend/**/*]' - '[bebras-monitor/**/*.scss!scss]' build/dependency-bundle.js",
     "build": "jspm build frontend/index.js build/index.js",
     "develop": "NODE_ENV=development babel-watch --use-polling backend/index.js",
     "start": "NODE_ENV=production LISTEN=8001 babel-node backend/index.js",
@@ -28,30 +28,31 @@
       "jspm": "frontend/jspm-0.17.config.js"
     },
     "dependencies": {
-      "babel-helper-builder-react-jsx": "npm:babel-helper-builder-react-jsx@^6.18.0",
-      "babel-plugin-syntax-jsx": "npm:babel-plugin-syntax-jsx@^6.18.0",
-      "bootstrap-sass": "npm:bootstrap-sass@^3.3.7",
+      "babel-runtime": "npm:babel-runtime@^6.0.0",
       "classnames": "npm:classnames@^2.2.5",
       "epic-component": "npm:epic-component@^0.3.1",
       "epic-linker": "npm:epic-linker@^1.0.5",
       "font-awesome": "npm:font-awesome@^4.7.0",
       "lodash": "npm:lodash@^4.16.6",
-      "normalize.css": "github:necolas/normalize.css@^5.0.0",
-      "plugin-sass": "npm:plugin-sass@^0.0.1-security",
       "react-bootstrap": "npm:react-bootstrap@^0.30.6",
       "react-redux": "npm:react-redux@^4.4.5",
       "redux-saga-ticker": "npm:redux-saga-ticker@1.0.1",
-      "scss": "github:mobilexag/plugin-sass@^0.5.0",
-      "superagent": "npm:superagent@^2.3.0",
-      "systemjs-plugin-babel": "npm:systemjs-plugin-babel@^0.0.17"
+      "superagent": "npm:superagent@^2.3.0"
     },
     "devDependencies": {
       "babel": "npm:babel-core@^6.0.0",
-      "babel-runtime": "npm:babel-runtime@^6.0.0",
+      "babel-helper-builder-react-jsx": "npm:babel-helper-builder-react-jsx@^6.18.0",
+      "babel-plugin-syntax-jsx": "npm:babel-plugin-syntax-jsx@^6.18.0",
+      "bootstrap-sass": "npm:bootstrap-sass@^3.3.7",
       "clean-css": "npm:clean-css@^3.4.20",
       "core-js": "npm:core-js@^1.1.4",
       "css": "github:systemjs/plugin-css@^0.1.32",
-      "module": "npm:jspm-nodelibs-module@^0.2.0"
+      "module": "npm:jspm-nodelibs-module@^0.2.0",
+      "normalize.css": "github:necolas/normalize.css@^5.0.0",
+      "plugin-sass": "npm:plugin-sass@^0.0.1-security",
+      "postcss": "npm:postcss@^5.2.6",
+      "scss": "github:mobilexag/plugin-sass@^0.5.0",
+      "systemjs-plugin-babel": "npm:systemjs-plugin-babel@^0.0.17"
     },
     "peerDependencies": {
       "assert": "npm:jspm-nodelibs-assert@^0.2.0",
