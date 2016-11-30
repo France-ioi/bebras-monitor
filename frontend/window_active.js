@@ -1,7 +1,7 @@
 
 import {eventChannel, buffers} from 'redux-saga';
 import {take, put} from 'redux-saga/effects';
-import {defineAction, addSaga, addReducer} from 'epic-linker';
+import {defineAction, addSaga, addReducer, defineSelector} from 'epic-linker';
 
 export default function* (deps) {
 
@@ -33,6 +33,15 @@ export default function* (deps) {
       let isActive = yield take(channel);
       yield put({type: deps.setWindowActive, isActive});
     }
+  });
+
+  yield addReducer('setWindowActive', function (state, action) {
+    const {isActive} = action;
+    return {...state, isActive};
+  });
+
+  yield defineSelector('isWindowActive', function (state) {
+    return state.isActive;
   });
 
 };
