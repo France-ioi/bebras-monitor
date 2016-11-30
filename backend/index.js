@@ -62,14 +62,22 @@ app.get('/', function (req, res) {
 });
 
 app.get('/refresh', function (req, res) {
-  const {liveSet} = workerStore.getState();
-  const {max_top_entries} = req.query;
+  refresh(req.query, res);
+});
+
+app.post('/refresh', function (req, res) {
+  refresh(req.body, res);
+});
+
+function refresh(query, res) {
+  const {max_top_entries} = query;
   const view = {};
+  const {liveSet} = workerStore.getState();
   if (max_top_entries) {
     view.topEntries = liveSet.getTopEntries(parseInt(max_top_entries));
   }
   res.json(view);
-});
+}
 
 function onSignal (options, err) {
   if (options.source === 'EXCEPT') {

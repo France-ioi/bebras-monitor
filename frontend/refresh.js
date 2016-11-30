@@ -7,7 +7,7 @@ import {Button} from 'react-bootstrap';
 import {call, select, put, take} from 'redux-saga/effects';
 import Ticker from 'redux-saga-ticker';
 
-import {asyncGetJson} from './backend_api';
+import {asyncPostJson} from './backend_api';
 
 export default function* (deps) {
 
@@ -18,8 +18,11 @@ export default function* (deps) {
       yield take(deps.refresh);
       try {
         yield put({type: deps.refreshStarted});
-        const {topEntries} = yield call(asyncGetJson, '/refresh?max_top_entries=25');
-        yield put({type: deps.updateTopEntries, entries: topEntries});
+        const query = {max_top_entries: 25};
+        const result = yield call(asyncPostJson, '/refresh', query);
+        if (result.topEntries) {
+          yield put({type: deps.updateTopEntries, entries: result.topEntries});
+        }
         yield put({type: deps.refreshDone, timestamp});
       } catch (ex) {
         console.log('backend refresh failed', ex);
