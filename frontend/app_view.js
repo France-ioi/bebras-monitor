@@ -7,7 +7,7 @@ export default function* (deps) {
 
   yield use('Tabs', 'ActiveTab', 'Refresh');
 
-  yield defineView('App', 'AppSelector', EpicComponent(self => {
+  yield defineView('App', EpicComponent(self => {
     self.render = function () {
       return (
         <div className="container">
