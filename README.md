@@ -14,6 +14,6 @@ Run in a production environment:
 
 Run in a development environment:
 
-    npm run bundle-babel
+    npm run bundle-build
     npm run bundle-deps
     LISTEN=8001 npm run develop
