@@ -46,3 +46,16 @@ body {
 .entry-total {
   min-width: 40px;
 }
+
+.bars-container {
+  border: 2px solid #000;
+}
+ul.bars, ul.bars > li {
+  height: 20px;
+  margin: 0;
+  padding: 0;
+}
+ul.bars > li {
+  display: inline-block;
+  overflow: hidden;
+}

@@ -6,7 +6,7 @@ import {link, include, defineAction, addReducer} from 'epic-linker';
 
 import AppView from './app_view';
 import ActivityTab from './activity_tab';
-import BlacklistTab from './blacklist_tab';
+import ActionsTab from './actions_tab';
 import Navigation from './navigation';
 import WindowActive from './window_active';
 import Refresh from './refresh';
@@ -28,10 +28,10 @@ const {store, scope, start} = link(function* (deps) {
   yield include(AppView);
 
   yield include(ActivityTab);
-  yield include(BlacklistTab);
+  yield include(ActionsTab);
   yield include(Navigation([
     {key: 'activity', label: "Activity", view: 'ActivityTab'},
-    {key: 'blacklist', label: "Blacklist", view: 'BlacklistTab'}
+    {key: 'actions', label: "Actions", view: 'ActionsTab'}
   ]));
 
   yield include(WindowActive);

@@ -6,17 +6,17 @@ import {use, defineSelector, defineView} from 'epic-linker';
 
 export default function* (deps) {
 
-  yield defineSelector('BlacklistTabSelector', function (state, props) {
+  yield defineSelector('ActionsTabSelector', function (state, props) {
     return {};
   });
 
-  yield defineView('BlacklistTab', 'BlacklistTabSelector', EpicComponent(self => {
+  yield defineView('ActionsTab', 'ActionsTabSelector', EpicComponent(self => {
 
     self.render = function () {
       return (
         <div className="row">
           <div className="col-md-12">
-            <p>blacklist</p>
+            <p>ip: action</p>
           </div>
         </div>
       );
