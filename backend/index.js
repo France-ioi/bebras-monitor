@@ -6,8 +6,6 @@ import * as http from 'http';
 import express from 'express';
 import bodyParser from 'body-parser';
 import compression from 'compression';
-import Redis from 'redis';
-import bluebird from 'bluebird';
 import colors from 'colors/safe';
 
 import Worker from './worker';
@@ -15,13 +13,9 @@ import Worker from './worker';
 const isDevelopment = process.env.NODE_ENV !== 'production';
 console.log(`running in ${isDevelopment ? colors.red('development') : colors.green('production')} mode`);
 
-bluebird.promisifyAll(Redis.RedisClient.prototype);
-bluebird.promisifyAll(Redis.Multi.prototype);
-const redis = Redis.createClient(process.env.REDIS_URL);
-
 const rootDir = path.resolve(path.dirname(__dirname));
 const app = express();
-const workerStore = Worker(redis);
+const workerStore = Worker(process.env.REDIS_URL);
 
 app.set('view engine', 'pug');
 app.set('views', path.join(rootDir, 'backend', 'views'));

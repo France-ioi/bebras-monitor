@@ -1,4 +1,7 @@
 
+
+import Redis from 'redis';
+import bluebird from 'bluebird';
 import {createStore, applyMiddleware} from 'redux';
 import {default as sagaMiddlewareFactory, END, takeEvery, takeLatest} from 'redux-saga';
 import {call, cps, select, put, take, fork, actionChannel} from 'redux-saga/effects'
@@ -8,6 +11,9 @@ import fs from 'fs';
 import dns from 'dns';
 
 import LiveSet from './live_set';
+
+bluebird.promisifyAll(Redis.RedisClient.prototype);
+bluebird.promisifyAll(Redis.Multi.prototype);
 
 const maxFetchInterval = 3000; // ms
 
@@ -30,7 +36,7 @@ function reducer (state, action) {
     return {
       liveSet: new LiveSet(),
       liveSetCapacity: 1000,
-      redis: action.redis
+      redisUrl: action.redisUrl
     };
   case 'LOAD':
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
@@ -90,9 +96,13 @@ function getKeyIP (key) {
   return hexToBytes(hexIp).join('.');
 }
 
+function* getRedisClient () {
+  const url = yield select(state => state.redisUrl);
+  return Redis.createClient(url);
+}
+
 function* reloadActionMap () {
-  console.log('reloading action map');
-  const redis = yield select(state => state.redis);
+  const redis = yield call(getRedisClient);
   const keys = yield cps([redis, redis.smembers], 'action_set');
   const actionMap = {};
   if (keys.length !== 0) {
@@ -116,7 +126,7 @@ function* ensureEntryLoaded (key) {
 function* followActivityQueue () {
   let count = 0, key, entry, now;
   const infoMap = {};
-  const redis = yield select(state => state.redis);
+  const redis = yield call(getRedisClient);
   while (true) {
     // lpop returns the key, or null
     key = yield cps([redis, redis.lpop], 'activity_queue');
@@ -139,34 +149,37 @@ function* followActivityQueue () {
   }
 }
 
-function* loadEntry (action) {
-  const {key} = action;
-  const ip = getKeyIP(key);
-  if (!ip) return;
-  // Preserve any data stored in the previous entry.
-  const prevEntry = yield select(getEntryByKey, key);
-  const entry = prevEntry ? {...prevEntry} : {key, ip};
-  entry.updatedAt = Date.now();
-  let total = 0;
-  const counterKeys = Object.keys(PerIpKeys);
-  const keys = counterKeys.map(ckey => `c.${key}.${PerIpKeys[ckey]}`);
-  const redis = yield select(state => state.redis);
-  const counters = yield cps([redis, redis.mget], keys);
-  counterKeys.forEach(function (ckey, i) {
-    const strValue = counters[i];
-    const value = strValue === null ? 0 : parseInt(strValue);
-    entry[ckey] = value;
-    total += value;
-  });
-  entry.total = total;
-  yield put({type: 'SET_ENTRY', entry});
-  if (!entry.hasOwnProperty('domains')) {
-    yield fork(reverseLookup, key, ip);
+function* loadEntryTask () {
+  const redis = yield call(getRedisClient);
+  while (true) {
+    const action = yield take('LOAD_ENTRY');
+    const {key} = action;
+    const ip = getKeyIP(key);
+    if (!ip) continue;
+    // Preserve any data stored in the previous entry.
+    const prevEntry = yield select(getEntryByKey, key);
+    const entry = prevEntry ? {...prevEntry} : {key, ip};
+    entry.updatedAt = Date.now();
+    let total = 0;
+    const counterKeys = Object.keys(PerIpKeys);
+    const keys = counterKeys.map(ckey => `c.${key}.${PerIpKeys[ckey]}`);
+    const counters = yield cps([redis, redis.mget], keys);
+    counterKeys.forEach(function (ckey, i) {
+      const strValue = counters[i];
+      const value = strValue === null ? 0 : parseInt(strValue);
+      entry[ckey] = value;
+      total += value;
+    });
+    entry.total = total;
+    yield put({type: 'SET_ENTRY', entry});
+    if (!entry.hasOwnProperty('domains')) {
+      yield fork(reverseLookup, key, ip);
+    }
   }
 }
 
 function* setEntryAction (action) {
-  const redis = yield select(state => state.redis);
+  const redis = yield call(getRedisClient);
   if (action.action === '') {
     yield cps([redis, redis.del], `a.${action.key}`);
     yield cps([redis, redis.srem], 'action_set', action.key);
@@ -198,20 +211,20 @@ function* minuteCron () {
 function* mainSaga () {
   yield take('START');
   yield takeLatest('RELOAD_ACTION_MAP', reloadActionMap);
-  yield takeEvery('LOAD_ENTRY', loadEntry);
+  yield fork(loadEntryTask);
   yield takeEvery('CHANGE_ENTRY_ACTION', setEntryAction);
   yield fork(followActivityQueue);
   yield fork(minuteCron);
   yield call(reloadActionMap);
 }
 
-export default function start (redis) {
+export default function start (redisUrl) {
   const sagaMiddleware = sagaMiddlewareFactory();
   const store = createStore(
     reducer,
     applyMiddleware(sagaMiddleware)
   );
-  store.dispatch({type: 'INIT', redis});
+  store.dispatch({type: 'INIT', redisUrl});
   sagaMiddleware.run(mainSaga);
   return store;
 };
