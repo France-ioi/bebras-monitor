@@ -3,9 +3,11 @@ import React from 'react';
 import {Panel, Radio} from 'react-bootstrap';
 import EpicComponent from 'epic-component';
 import classnames from 'classnames';
-import {defineView} from 'epic-linker';
+import {use, defineView} from 'epic-linker';
 
 export default function* (deps) {
+
+  yield use('setEntryAction');
 
   const barKeys = [
     'loadPublicGroups',
@@ -35,9 +37,15 @@ export default function* (deps) {
 
   yield defineView('EntryPanel', EpicComponent(self => {
 
+    const onActionChange = function (event) {
+      const action = event.currentTarget.getAttribute('data-key');
+      const key = self.props.entry.key;
+      self.props.dispatch({type: deps.setEntryAction, key, action});
+    };
+
     self.render = function () {
       const {entry} = self.props;
-      const {domains} = entry;
+      const {domains, action} = entry;
       const updatedAt = new Date(entry.updatedAt);
       let total = 0;
       barKeys.forEach(key => { total += entry[key]; });
@@ -50,7 +58,7 @@ export default function* (deps) {
           <span>{entry.key}</span>
         </div>);
       return (
-        <Panel header={header}>
+        <Panel header={header} key={entry.key}>
           <p>
             {entry.ip}
             {' '}
@@ -71,10 +79,10 @@ export default function* (deps) {
             </ul>
           </div>
           <div>
-            <Radio inline checked={false}>no action</Radio>
-            <Radio inline checked={false}>blacklist</Radio>
-            <Radio inline checked={false}>whitelist</Radio>
-            <Radio inline checked={false}>bypass</Radio>
+            <Radio inline checked={action === undefined} data-key='' onChange={onActionChange}>no action</Radio>
+            <Radio inline checked={action === 'b'} data-key='b' onChange={onActionChange}>blacklist</Radio>
+            <Radio inline checked={action === 'w'} data-key='w' onChange={onActionChange}>whitelist</Radio>
+            <Radio inline checked={action === 'W'} data-key='W' onChange={onActionChange}>bypass</Radio>
           </div>
         </Panel>
       );

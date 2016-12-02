@@ -5,38 +5,26 @@ import EpicComponent from 'epic-component';
 import classnames from 'classnames';
 import {include, use, defineAction, defineSelector, defineView, addReducer} from 'epic-linker';
 
-import EntryPanel from './entry_panel';
-
 export default function* (deps) {
 
-  yield include(EntryPanel)
-  yield use('EntryPanel');
-
-  yield defineAction('showEntry', 'ActivityTab.Entry.Show');
-  yield defineAction('selectEntry', 'ActivityTab.Entry.Select');
-
-  yield addReducer('showEntry', function (state, action) {
-    return {...state, pointedEntryKey: action.key};
-  });
-
-  yield addReducer('selectEntry', function (state, action) {
-    if (action.key === state.selectedEntryKey) {
-      return {...state, selectedEntryKey: undefined};
-    }
-    return {...state, selectedEntryKey: action.key};
-  });
+  yield use('EntryPanel', 'showEntry', 'selectEntry');
 
   yield defineSelector('ActivityTabSelector', function (state, props) {
-    const {topEntries, selectedEntryKey, pointedEntryKey} = state;
+    const {entries, topKeys, selectedEntryKey, pointedEntryKey} = state;
     let pointedEntry, selectedEntry;
-    const nEntries = topEntries.length;
-    for (let i = 0; i < nEntries; i += 1) {
-      let entry = topEntries[i];
-      if (entry.key === pointedEntryKey) {
-        pointedEntry = entry;
-      }
-      if (entry.key === selectedEntryKey) {
-        selectedEntry = entry;
+    const topEntries = [];
+    if (topKeys !== undefined) {
+      const nEntries = topKeys.length;
+      for (let i = 0; i < nEntries; i += 1) {
+        let key = topKeys[i];
+        let entry = entries[key];
+        topEntries.push(entry);
+        if (key === pointedEntryKey) {
+          pointedEntry = entry;
+        }
+        if (key === selectedEntryKey) {
+          selectedEntry = entry;
+        }
       }
     }
     return {topEntries, pointedEntry, selectedEntry};
@@ -60,6 +48,9 @@ export default function* (deps) {
         <div className={classnames(["entry-table", isSelected && "entry-selected"])} key={key} onClick={onSelectEntry} onMouseOver={onShowEntry} data-key={key}>
           <span className="entry-ip number">{ip}</span>
           <span className="entry-total number">{total}</span>
+          <span className="entry-action">
+            {entry.action}
+          </span>
           <span className="entry-domain number">
             {domains === undefined ? 'unknown' :
              domains === false ? 'not found' :
@@ -69,8 +60,7 @@ export default function* (deps) {
     };
 
     self.render = function () {
-      const {topEntries, pointedEntry, selectedEntry} = self.props;
-      // <span className="entry-key">{key}</span>
+      const {topEntries, pointedEntry, selectedEntry, dispatch} = self.props;
       return (
         <div className="row">
           <div className="col-md-6">
@@ -80,9 +70,9 @@ export default function* (deps) {
           </div>
           <div className="col-md-6">
             {selectedEntry &&
-              <deps.EntryPanel entry={selectedEntry}/>}
+              <deps.EntryPanel entry={selectedEntry} dispatch={dispatch}/>}
             {pointedEntry && pointedEntry !== selectedEntry &&
-              <deps.EntryPanel entry={pointedEntry}/>}
+              <deps.EntryPanel entry={pointedEntry} dispatch={dispatch}/>}
           </div>
         </div>
       );

@@ -5,6 +5,8 @@ import {Provider} from 'react-redux';
 import {link, include, defineAction, addReducer} from 'epic-linker';
 
 import AppView from './app_view';
+import EntryPanel from './entry_panel';
+import Entries from './entries';
 import ActivityTab from './activity_tab';
 import ActionsTab from './actions_tab';
 import Navigation from './navigation';
@@ -27,6 +29,8 @@ const {store, scope, start} = link(function* (deps) {
 
   yield include(AppView);
 
+  yield include(Entries);
+  yield include(EntryPanel);
   yield include(ActivityTab);
   yield include(ActionsTab);
   yield include(Navigation([

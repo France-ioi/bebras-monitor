@@ -20,8 +20,11 @@ export default function* (deps) {
         yield put({type: deps.refreshStarted});
         const query = {max_top_entries: 25};
         const result = yield call(asyncPostJson, '/refresh', query);
+        if (result.entries) {
+          yield put({type: deps.updateEntries, entries: result.entries});
+        }
         if (result.topEntries) {
-          yield put({type: deps.updateTopEntries, entries: result.topEntries});
+          yield put({type: deps.updateTopEntries, keys: result.topEntries});
         }
         yield put({type: deps.refreshDone, timestamp});
       } catch (ex) {
@@ -37,10 +40,17 @@ export default function* (deps) {
     }
   });
 
+  yield defineAction('updateEntries', 'Entries.Update');
+  yield addReducer('updateEntries', function (state, action) {
+    const {entries} = action;
+    // XXX build actions list here
+    return {...state, entries};
+  });
+
   yield defineAction('updateTopEntries', 'TopEntries.Update');
   yield addReducer('updateTopEntries', function (state, action) {
-    const {entries} = action;
-    return {...state, topEntries: entries};
+    const {keys} = action;
+    return {...state, topKeys: keys};
   });
 
   yield defineAction('refreshStarted', 'Refresh.Started');
