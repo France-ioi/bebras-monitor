@@ -7,6 +7,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import compression from 'compression';
 import Redis from 'redis';
+import bluebird from 'bluebird';
 import colors from 'colors/safe';
 
 import Worker from './worker';
@@ -14,10 +15,13 @@ import Worker from './worker';
 const isDevelopment = process.env.NODE_ENV !== 'production';
 console.log(`running in ${isDevelopment ? colors.red('development') : colors.green('production')} mode`);
 
+bluebird.promisifyAll(Redis.RedisClient.prototype);
+bluebird.promisifyAll(Redis.Multi.prototype);
+const redis = Redis.createClient(process.env.REDIS_URL);
+
 const rootDir = path.resolve(path.dirname(__dirname));
 const app = express();
-const redis = Redis.createClient(process.env.REDIS_URL);
-const workerStore = Worker();
+const workerStore = Worker(redis);
 
 app.set('view engine', 'pug');
 app.set('views', path.join(rootDir, 'backend', 'views'));
@@ -61,23 +65,34 @@ app.get('/', function (req, res) {
   res.render('index', {development: isDevelopment});
 });
 
-app.get('/refresh', function (req, res) {
-  refresh(req.query, res);
-});
-
 app.post('/refresh', function (req, res) {
-  refresh(req.body, res);
-});
-
-function refresh(query, res) {
+  const query = req.body;
   const {max_top_entries} = query;
   const view = {};
-  const {liveSet} = workerStore.getState();
+  const {liveSet, actionMap} = workerStore.getState();
+  const keySet = new Set();
+  // TODO: get entries from actionMap
+  const actionKeys = Object.keys(actionMap);
+  actionKeys.forEach(key => keySet.add(key));
   if (max_top_entries) {
+    // XXX make topEntries a list of keys, adding entries to view.entries object
     view.topEntries = liveSet.getTopEntries(parseInt(max_top_entries));
+    view.topEntries.forEach(key => keySet.add(key));
   }
+  const entries = view.entries = liveSet.mget(keySet);
+  actionKeys.forEach(function (key) {
+    const infos = actionMap[key];
+    entries[key] = {...entries[key], action: infos.action};
+  });
   res.json(view);
-}
+});
+
+app.post('/setAction', function (req, res) {
+  const query = req.body;
+  const {key, action} = query;
+  workerStore.dispatch({type: 'CHANGE_ENTRY_ACTION', key, action});
+  res.end();
+});
 
 function onSignal (options, err) {
   if (options.source === 'EXCEPT') {

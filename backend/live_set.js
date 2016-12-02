@@ -154,11 +154,21 @@ LiveSet.prototype.getTopEntries = function (count) {
   while (result.length < count && it.valid) {
     it.value.forEach(key => {
       if (result.length < count) {
-        const entry = this.byKey.get(key);
-        result.push(entry.element);
+        result.push(key);
       }
     });
     it.prev();
+  }
+  return result;
+};
+
+LiveSet.prototype.mget = function (keys) {
+  const result = {};
+  for (let key of keys) {
+    let entry = this.byKey.get(key);
+    if (entry) {
+      result[key] = entry.element;
+    }
   }
   return result;
 };

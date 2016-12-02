@@ -1,21 +1,15 @@
 
 import {createStore, applyMiddleware} from 'redux';
-import {END} from 'redux-saga';
-import sagaMiddlewareFactory from 'redux-saga';
-import {call, cps, select, put, take, fork} from 'redux-saga/effects'
+import {default as sagaMiddlewareFactory, END, takeEvery, takeLatest} from 'redux-saga';
+import {call, cps, select, put, take, fork, actionChannel} from 'redux-saga/effects'
 import Ticker from 'redux-saga-ticker';
-import Redis from 'redis';
-import bluebird from 'bluebird';
 import Immutable from 'immutable';
 import fs from 'fs';
 import dns from 'dns';
 
 import LiveSet from './live_set';
 
-bluebird.promisifyAll(Redis.RedisClient.prototype);
-bluebird.promisifyAll(Redis.Multi.prototype);
-
-const redis = Redis.createClient(process.env.REDIS_URL);
+const maxFetchInterval = 3000; // ms
 
 const PerIpKeys = {
   answer: 'answer.total',
@@ -35,7 +29,8 @@ function reducer (state, action) {
   case 'INIT':
     return {
       liveSet: new LiveSet(),
-      liveSetCapacity: 1000
+      liveSetCapacity: 1000,
+      redis: action.redis
     };
   case 'LOAD':
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
@@ -65,25 +60,63 @@ function reducer (state, action) {
       // Prune entries that haven't been touched in 1 hour.
       copy.prune(Date.now() - 60 * 60 * 1000);
     })};
+  case 'UPDATE_ACTION_MAP': {
+    const {actionMap} = action;
+    return {...state, actionMap};
+  }
   default:
     return state;
   }
 }
 
-function getElementByKey (state, key) {
+function getEntryByKey (state, key) {
   return state.liveSet.get(key);
 }
 
 function hexToBytes (hex) {
   var bytes = [];
-  for (var i = 0; i < hex.length; i += 2)
+  for (var i = 0; i < hex.length; i += 2) {
     bytes.push(parseInt(hex.substr(i, 2), 16));
+  }
   return bytes;
 }
 
+function getKeyIP (key) {
+  const md = /^IP\(([0-9a-f]+)\)$/.exec(key);
+  if (!md) {
+    return;
+  }
+  const hexIp = md[1];
+  return hexToBytes(hexIp).join('.');
+}
+
+function* reloadActionMap () {
+  console.log('reloading action map');
+  const redis = yield select(state => state.redis);
+  const keys = yield cps([redis, redis.smembers], 'action_set');
+  const actionMap = {};
+  if (keys.length !== 0) {
+    const actions = yield cps([redis, redis.mget], keys.map(key => `a.${key}`));
+    keys.forEach(function (key, i) {
+      actionMap[key] = {action: actions[i]};
+    });
+  }
+  yield put({type: 'UPDATE_ACTION_MAP', actionMap});
+  // Ensure entries that have an action are loaded.
+  yield keys.map(key => call(ensureEntryLoaded, key));
+}
+
+function* ensureEntryLoaded (key) {
+  const entry = yield select(getEntryByKey, key);
+  if (!entry) {
+    put({type: 'LOAD_ENTRY', key})
+  }
+}
+
 function* followActivityQueue () {
-  let count = 0, key, element, now;
+  let count = 0, key, entry, now;
   const infoMap = {};
+  const redis = yield select(state => state.redis);
   while (true) {
     // lpop returns the key, or null
     key = yield cps([redis, redis.lpop], 'activity_queue');
@@ -95,46 +128,53 @@ function* followActivityQueue () {
       key = res[1];
     }
     count += 1;
-    element = yield select(getElementByKey, key);
+    entry = yield select(getEntryByKey, key);
     now = Date.now();
-    if (element && now < element.updatedAt + 60000) {
-      // TODO: schedule a fetch at updatedAt + 60s
+    // Limit to 1 fetch per second.
+    if (entry && now < entry.updatedAt + maxFetchInterval) {
+      // TODO: schedule a fetch at updatedAt + maxFetchInterval
       continue;
     }
-    yield put({type: 'FETCH', key});
+    yield put({type: 'LOAD_ENTRY', key});
   }
 }
 
-function* fetchCounters () {
-  while (true) {
-    let {key} = yield take('FETCH');
-    let md = /^IP\(([0-9a-f]+)\)$/.exec(key);
-    if (md) {
-      yield call(fetchIpCounters, key, md[1]);
-    }
-  }
-}
-
-function* fetchIpCounters (key, hexIp) {
-  const ip = hexToBytes(hexIp);
-  const ipStr = ip.join('.');
-  const now = Date.now();
+function* loadEntry (action) {
+  const {key} = action;
+  const ip = getKeyIP(key);
+  if (!ip) return;
   // Preserve any data stored in the previous entry.
-  const prevEntry = yield select(getElementByKey, key);
-  const entry = prevEntry ? {...prevEntry, updatedAt: now} : {key: key, ip: ipStr, total: 0, updatedAt: now};
+  const prevEntry = yield select(getEntryByKey, key);
+  const entry = prevEntry ? {...prevEntry} : {key, ip};
+  entry.updatedAt = Date.now();
+  let total = 0;
   const counterKeys = Object.keys(PerIpKeys);
   const keys = counterKeys.map(ckey => `c.${key}.${PerIpKeys[ckey]}`);
+  const redis = yield select(state => state.redis);
   const counters = yield cps([redis, redis.mget], keys);
   counterKeys.forEach(function (ckey, i) {
     const strValue = counters[i];
     const value = strValue === null ? 0 : parseInt(strValue);
     entry[ckey] = value;
-    entry.total += value;
+    total += value;
   });
+  entry.total = total;
   yield put({type: 'SET_ENTRY', entry});
   if (!entry.hasOwnProperty('domains')) {
-    yield fork(reverseLookup, key, ipStr);
+    yield fork(reverseLookup, key, ip);
   }
+}
+
+function* setEntryAction (action) {
+  const redis = yield select(state => state.redis);
+  if (action.action === '') {
+    yield cps([redis, redis.del], `a.${action.key}`);
+    yield cps([redis, redis.srem], 'action_set', action.key);
+  } else {
+    yield cps([redis, redis.set], `a.${action.key}`, action.action);
+    yield cps([redis, redis.sadd], 'action_set', action.key);
+  }
+  yield put({type: 'RELOAD_ACTION_MAP'});
 }
 
 function* reverseLookup (key, ip) {
@@ -157,18 +197,21 @@ function* minuteCron () {
 
 function* mainSaga () {
   yield take('START');
+  yield takeLatest('RELOAD_ACTION_MAP', reloadActionMap);
+  yield takeEvery('LOAD_ENTRY', loadEntry);
+  yield takeEvery('CHANGE_ENTRY_ACTION', setEntryAction);
   yield fork(followActivityQueue);
-  yield fork(fetchCounters);
   yield fork(minuteCron);
+  yield call(reloadActionMap);
 }
 
-export default function start () {
+export default function start (redis) {
   const sagaMiddleware = sagaMiddlewareFactory();
   const store = createStore(
     reducer,
     applyMiddleware(sagaMiddleware)
   );
-  store.dispatch({type: 'INIT'});
+  store.dispatch({type: 'INIT', redis});
   sagaMiddleware.run(mainSaga);
   return store;
 };
