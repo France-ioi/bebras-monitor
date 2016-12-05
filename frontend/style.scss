@@ -63,3 +63,50 @@ ul.bars > li {
   display: inline-block;
   overflow: hidden;
 }
+
+.has-tooltip {
+  position: relative;
+}
+.tooltip {
+  display: none;
+  position: absolute;
+  border: 1px solid red;
+  border-radius: 5px;
+  padding: 5px;
+  top: -10px;
+  left: 200px;
+  width: 300px;
+}
+/*
+.has-tooltip:hover .tooltip {
+  display: block;
+}​
+*/
+
+ul.hbars > li {
+  width: 100%;
+  height: 20px;
+  list-style-type: none;
+  margin: 2px 0;
+  padding: 0;
+  line-height: 1;
+}
+ul.hbars > li > * {
+  display: inline-block;
+}
+.hbar-label {
+  width: 120px;
+}
+.hbar-value {
+  position: relative;
+  height: 1em;
+  vertical-align: top;
+}
+.hbar-background, .hbar-number {
+  position: absolute;
+  left: 0;
+  height: 100%;
+}
+.hbar-number {
+  color: #f0f0f0;
+}

@@ -32,7 +32,7 @@ export default function* (deps) {
     answer: '#0000ff',
     destroySession: '#4b0082',
     closeContest: '#8b00ff',
-    solutions: '#ffffff'
+    solutions: '#f0f0f0'
   };
 
   yield defineView('EntryPanel', EpicComponent(self => {
@@ -46,14 +46,17 @@ export default function* (deps) {
     self.render = function () {
       const {entry} = self.props;
       const {domains, action} = entry;
-      const updatedAt = new Date(entry.updatedAt);
+      const updatedAt = entry.updatedAt && new Date(entry.updatedAt);
       let total = 0;
       barKeys.forEach(key => { total += entry[key]; });
       // <span className="entry-key">{key}</span>
       const header = (
         <div>
           <div className="pull-right">
-            <span title={updatedAt.toISOString()}>{updatedAt.toLocaleString()}</span>
+            {updatedAt && <span className="has-tooltip">
+              {updatedAt.toLocaleString()}
+              <span className="tooltip">{updatedAt.toISOString()}</span>
+            </span>}
           </div>
           <span>{entry.key}</span>
         </div>);
@@ -64,6 +67,22 @@ export default function* (deps) {
             {' '}
             {Array.isArray(domains) ? domains.join(' ') : domains}
           </p>
+          <div className="entry-hbars">
+            <ul className="hbars">
+              {barKeys.map(key => {
+                let value = entry[key];
+                return (
+                  <li key={key}>
+                    <div className="hbar-label">{key}</div>
+                    <div className="hbar-value">
+                      <div className="hbar-background" style={{width: `${value / 10}px`, backgroundColor: keyColor[key]}}></div>
+                      <div className="hbar-number">{value}</div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
           <div className="bars-container">
             <ul className="bars">
               {barKeys.map(key => {
