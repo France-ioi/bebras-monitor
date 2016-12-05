@@ -10,6 +10,7 @@ import Immutable from 'immutable';
 import fs from 'fs';
 import dns from 'dns';
 
+import {getKeyIP} from './utils';
 import LiveSet from './live_set';
 
 bluebird.promisifyAll(Redis.RedisClient.prototype);
@@ -77,23 +78,6 @@ function reducer (state, action) {
 
 function getEntryByKey (state, key) {
   return state.liveSet.get(key);
-}
-
-function hexToBytes (hex) {
-  var bytes = [];
-  for (var i = 0; i < hex.length; i += 2) {
-    bytes.push(parseInt(hex.substr(i, 2), 16));
-  }
-  return bytes;
-}
-
-function getKeyIP (key) {
-  const md = /^IP\(([0-9a-f]+)\)$/.exec(key);
-  if (!md) {
-    return;
-  }
-  const hexIp = md[1];
-  return hexToBytes(hexIp).join('.');
 }
 
 function* getRedisClient () {

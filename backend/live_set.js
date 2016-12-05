@@ -3,6 +3,8 @@ import Immutable from 'immutable';
 import FingerTree from 'fingertree';
 import createTree from 'functional-red-black-tree';
 
+import {getKeyIP} from './utils';
+
 function Measure (size, minTotal, maxTotal, lru) {
   this.size = size;
   this.minTotal = minTotal;
@@ -168,6 +170,8 @@ LiveSet.prototype.mget = function (keys) {
     let entry = this.byKey.get(key);
     if (entry) {
       result[key] = entry.element;
+    } else {
+      result[key] = {key, ip: getKeyIP(key)};
     }
   }
   return result;
@@ -204,6 +208,11 @@ LiveSet.prototype.prune = function (refTime) {
       break;
     }
     const element = this.extractLru();
-    console.log('pruned', element.key);
+    if (element) {
+      console.log('pruned', element.key);
+    } else {
+      console.log('failed to extract LRU', lru, refTime, element);
+      return;
+    }
   }
 };
