@@ -1,14 +1,13 @@
 
 import React from 'react';
-import EpicComponent from 'epic-component';
 import {use, defineSelector, defineView} from 'epic-linker';
 
 export default function* (deps) {
 
   yield use('Tabs', 'ActiveTab', 'Refresh');
 
-  yield defineView('App', EpicComponent(self => {
-    self.render = function () {
+  yield defineView('App', class App extends React.PureComponent {
+    render () {
       return (
         <div className="container">
           <div id="header">
@@ -21,7 +20,7 @@ export default function* (deps) {
             <deps.ActiveTab/>
           </div>
         </div>);
-    };
-  }));
+    }
+  });
 
 };

@@ -1,12 +1,15 @@
 {
   "presets": [
+    "env",
+    "react",
+    "stage-2",
     {
       "plugins": [
+        "transform-class-properties",
         "transform-flow-strip-types",
         "transform-object-rest-spread",
         "transform-runtime"
       ]
-    },
-    "es2015"
+    }
   ]
 }

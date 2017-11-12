@@ -1,7 +1,6 @@
 
 import React from 'react';
 import {Panel, Radio} from 'react-bootstrap';
-import EpicComponent from 'epic-component';
 import classnames from 'classnames';
 import {use, defineView} from 'epic-linker';
 
@@ -35,16 +34,16 @@ export default function* (deps) {
     solutions: '#f0f0f0'
   };
 
-  yield defineView('EntryPanel', EpicComponent(self => {
+  yield defineView('EntryPanel', class EntryPanel extends React.PureComponent {
 
-    const onActionChange = function (event) {
+    onActionChange = (event) => {
       const action = event.currentTarget.getAttribute('data-key');
-      const key = self.props.entry.key;
-      self.props.dispatch({type: deps.setEntryAction, key, action});
+      const key = this.props.entry.key;
+      this.props.dispatch({type: deps.setEntryAction, key, action});
     };
 
-    self.render = function () {
-      const {entry} = self.props;
+    render () {
+      const {entry} = this.props;
       const {domains, action} = entry;
       const updatedAt = entry.updatedAt && new Date(entry.updatedAt);
       let total = 0;
@@ -98,15 +97,15 @@ export default function* (deps) {
             </ul>
           </div>
           <div>
-            <Radio inline checked={action === undefined} data-key='' onChange={onActionChange}>no action</Radio>
-            <Radio inline checked={action === 'b'} data-key='b' onChange={onActionChange}>blacklist</Radio>
-            <Radio inline checked={action === 'w'} data-key='w' onChange={onActionChange}>whitelist</Radio>
-            <Radio inline checked={action === 'W'} data-key='W' onChange={onActionChange}>bypass</Radio>
+            <Radio inline checked={action === undefined} data-key='' onChange={this.onActionChange}>{"no action"}</Radio>
+            <Radio inline checked={action === 'b'} data-key='b' onChange={this.onActionChange}>{"blacklist"}</Radio>
+            <Radio inline checked={action === 'w'} data-key='w' onChange={this.onActionChange}>{"whitelist"}</Radio>
+            <Radio inline checked={action === 'W'} data-key='W' onChange={this.onActionChange}>{"bypass"}</Radio>
           </div>
         </Panel>
       );
-    };
+    }
 
-  }));
+  });
 
 };

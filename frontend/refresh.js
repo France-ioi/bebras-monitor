@@ -1,6 +1,5 @@
 
 import {use, defineAction, defineSelector, defineView, addSaga, addReducer} from 'epic-linker';
-import EpicComponent from 'epic-component';
 import React from 'react';
 import classnames from 'classnames';
 import {Button} from 'react-bootstrap';
@@ -86,27 +85,27 @@ export default function* (deps) {
     return {refreshPending, refreshedAt, refreshError, isActive};
   });
 
-  yield defineView('Refresh', 'RefreshSelector', EpicComponent(self => {
+  yield defineView('Refresh', 'RefreshSelector', class Refresh extends React.PureComponent {
 
-    const onRefresh = function () {
-      self.props.dispatch({type: deps.refresh});
+    onRefresh = () => {
+      this.props.dispatch({type: deps.refresh});
     };
 
-    self.render = function () {
-      const {refreshPending, refreshedAt, refreshError, isActive} = self.props;
+    render () {
+      const {refreshPending, refreshedAt, refreshError, isActive} = this.props;
       return (
         <div className="refresh-control">
           {refreshedAt &&
             (refreshError
               ? <span className="refreshedAt refreshError" title={refreshError}>refresh failed at {refreshedAt.toISOString()}</span>
               : <span className="refreshedAt">refreshed at {refreshedAt.toISOString()}</span>)}
-          <Button onClick={onRefresh} bsStyle={isActive ? 'default' : 'primary'}>
+          <Button onClick={this.onRefresh} bsStyle={isActive ? 'default' : 'primary'}>
             <i className={classnames(['fa', 'fa-refresh', refreshPending && 'fa-spin'])}/>
           </Button>
         </div>
       );
-    };
+    }
 
-  }));
+  });
 
 };

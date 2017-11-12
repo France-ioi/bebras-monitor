@@ -1,7 +1,6 @@
 
 import React from 'react';
 import {Button} from 'react-bootstrap';
-import EpicComponent from 'epic-component';
 import classnames from 'classnames';
 import {include, use, defineAction, defineSelector, defineView, addReducer} from 'epic-linker';
 
@@ -30,22 +29,22 @@ export default function* (deps) {
     return {topEntries, pointedEntry, selectedEntry};
   });
 
-  yield defineView('ActivityTab', 'ActivityTabSelector', EpicComponent(self => {
+  yield defineView('ActivityTab', 'ActivityTabSelector', class ActivityTab extends React.PureComponent {
 
-    const onShowEntry = function (event) {
+    onShowEntry = (event) => {
       const key = event.currentTarget.getAttribute('data-key');
-      self.props.dispatch({type: deps.showEntry, key});
+      this.props.dispatch({type: deps.showEntry, key});
     };
 
-    const onSelectEntry = function (event) {
+    onSelectEntry = (event) => {
       const key = event.currentTarget.getAttribute('data-key');
-      self.props.dispatch({type: deps.selectEntry, key});
+      this.props.dispatch({type: deps.selectEntry, key});
     };
 
-    const renderEntry = function (entry, isSelected) {
+    _renderEntry = (entry, isSelected) => {
       const {key, ip, total, domains} = entry;
       return (
-        <div className={classnames(["entry-table", isSelected && "entry-selected"])} key={key} onClick={onSelectEntry} onMouseOver={onShowEntry} data-key={key}>
+        <div className={classnames(["entry-table", isSelected && "entry-selected"])} key={key} onClick={this.onSelectEntry} onMouseOver={this.onShowEntry} data-key={key}>
           <span className="entry-ip number">{ip}</span>
           <span className="entry-total number">{total}</span>
           <span className="entry-action">
@@ -57,15 +56,15 @@ export default function* (deps) {
              domains.join(',')}</span>
         </div>
       );
-    };
+    }
 
-    self.render = function () {
-      const {topEntries, pointedEntry, selectedEntry, dispatch} = self.props;
+    render () {
+      const {topEntries, pointedEntry, selectedEntry, dispatch} = this.props;
       return (
         <div className="row">
           <div className="col-md-6">
             {topEntries && <div>{topEntries.map(entry =>
-              renderEntry(entry, selectedEntry === entry)
+              this._renderEntry(entry, selectedEntry === entry)
             )}</div>}
           </div>
           <div className="col-md-6">
@@ -76,8 +75,8 @@ export default function* (deps) {
           </div>
         </div>
       );
-    };
+    }
 
-  }));
+  });
 
 };

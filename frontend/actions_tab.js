@@ -1,7 +1,6 @@
 
 import React from 'react';
 import {Button} from 'react-bootstrap';
-import EpicComponent from 'epic-component';
 import {use, defineSelector, defineView} from 'epic-linker';
 
 export default function* (deps) {
@@ -27,19 +26,19 @@ export default function* (deps) {
     return {entries: shownEntries, pointedEntry, selectedEntry};
   });
 
-  yield defineView('ActionsTab', 'ActionsTabSelector', EpicComponent(self => {
+  yield defineView('ActionsTab', 'ActionsTabSelector', class ActionsTab extends React.PureComponent {
 
-    const onShowEntry = function (event) {
+    onShowEntry = (event) => {
       const key = event.currentTarget.getAttribute('data-key');
-      self.props.dispatch({type: deps.showEntry, key});
+      this.props.dispatch({type: deps.showEntry, key});
     };
 
-    const onSelectEntry = function (event) {
+    onSelectEntry = (event) => {
       const key = event.currentTarget.getAttribute('data-key');
-      self.props.dispatch({type: deps.selectEntry, key});
+      this.props.dispatch({type: deps.selectEntry, key});
     };
 
-    const renderEntry = function (entry) {
+    _renderEntry = (entry) => {
       const {key, ip, action} = entry;
       return (
         <li key={key} onClick={onSelectEntry} onMouseOver={onShowEntry} data-key={key}>
@@ -48,13 +47,13 @@ export default function* (deps) {
       );
     };
 
-    self.render = function () {
-      const {entries, pointedEntry, selectedEntry, dispatch} = self.props;
+    render () {
+      const {entries, pointedEntry, selectedEntry, dispatch} = this.props;
       return (
         <div className="row">
           <div className="col-md-6">
             <ul>
-              {entries.map(renderEntry)}
+              {entries.map(this._renderEntry)}
             </ul>
           </div>
           <div className="col-md-6">
@@ -65,8 +64,8 @@ export default function* (deps) {
           </div>
         </div>
       );
-    };
+    }
 
-  }));
+  });
 
 };

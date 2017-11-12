@@ -1,7 +1,6 @@
 
 import React from 'react';
 import {Nav, NavItem} from 'react-bootstrap';
-import EpicComponent from 'epic-component';
 import {defineAction, addReducer, defineSelector, defineView, use} from 'epic-linker';
 
 export default tabs => function* (deps) {
@@ -30,28 +29,28 @@ export default tabs => function* (deps) {
     return {activeTabKey};
   });
 
-  yield defineView('Tabs', 'TabsSelector', EpicComponent(self => {
+  yield defineView('Tabs', 'TabsSelector', class Tabs extends React.PureComponent {
 
-    const setActiveTab = function (key) {
-      self.props.dispatch({type: deps.setActiveTab, key});
+    setActiveTab = (key) => {
+      this.props.dispatch({type: deps.setActiveTab, key});
     };
 
-    self.render = function () {
-      let {activeTabKey} = self.props;
+    render () {
+      let {activeTabKey} = this.props;
       const items = tabs.map(function (tab) {
         const {key, label} = tab;
         const enabled = true; // add logic here if tabs can be disabled
         return <NavItem key={key} eventKey={key} disabled={!enabled}>{label}</NavItem>;
       });
-      return <Nav bsStyle="pills" onSelect={setActiveTab} activeKey={activeTabKey}>{items}</Nav>;
-    };
+      return <Nav bsStyle="pills" onSelect={this.setActiveTab} activeKey={activeTabKey}>{items}</Nav>;
+    }
 
-  }));
+  });
 
-  yield defineView('ActiveTab', 'TabsSelector', EpicComponent(self => {
+  yield defineView('ActiveTab', 'TabsSelector', class ActiveTab extends React.PureComponent {
 
-    self.render = function () {
-      const {activeTabKey} = self.props;
+    render () {
+      const {activeTabKey} = this.props;
       const viewName = tabByKey[activeTabKey].view;
       let content = false;
       if (viewName) {
@@ -59,8 +58,8 @@ export default tabs => function* (deps) {
         content = <View/>;
       }
       return content;
-    };
+    }
 
-  }));
+  });
 
 };
