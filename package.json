@@ -16,8 +16,8 @@
   },
   "scripts": {
     "build": "webpack",
-    "develop": "NODE_ENV=development babel-node --watch backend/index.js",
     "start": "NODE_ENV=production babel-node backend/index.js",
+    "develop": "NODE_ENV=development babel-watch --watch backend/ backend/index.js",
     "test": "babel-node backend/test.js",
     "flow": "flow"
   },
@@ -47,6 +47,7 @@
   },
   "dependencies": {
     "babel-runtime": "^6.0.0",
+    "babel-watch": "^2.0.7",
     "body-parser": "^1.15.0",
     "bootstrap-sass": "^3.3.7",
     "classnames": "^2.2.5",
