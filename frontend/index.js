@@ -1,8 +1,11 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom';
+import PropTypes from 'prop-types';
 import {Provider} from 'react-redux';
 import {link, include, defineAction, addReducer} from 'epic-linker';
+
+React.PropTypes = PropTypes;
 
 import AppView from './app_view';
 import EntryPanel from './entry_panel';

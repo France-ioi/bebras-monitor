@@ -23,35 +23,25 @@ if (!isDevelopment) {
   app.use(compression());
 }
 
-const staticAssets = {
-  // Static files (no build step) are served at /assets.
-  '/assets': {
-    localPath: 'assets'
-  },
-  // Built files (transpiled js, minified css, etc) are served at /build.
-  '/build': {
-    localPath: 'build'
-  },
-  // The package manager files are served at /jspm_packages.
-  // This is needed in production for dependency assets (fonts, images, css).
-  '/jspm_packages': {
-    localPath: 'jspm_packages'
-  },
-  // Source frontend files are served at /src.
-  '/src': {
-    localPath: 'frontend',
-    enabled: isDevelopment
-  }
-};
-Object.keys(staticAssets).forEach(function (urlPath) {
-  const options = staticAssets[urlPath];
-  if ('enabled' in options && !options.enabled) {
-    return;
-  }
-  let fullPath = path.join(rootDir, options.localPath);
-  // console.log('static', urlPath, fullPath);
-  app.use(urlPath, express.static(fullPath));
-});
+// Static files (no build step) are served at /assets.
+app.use('/assets', express.static(path.join(rootDir, 'assets')));
+
+if (isDevelopment) {
+  // Development route: /build is managed by webpack
+  const webpack = require('webpack');
+  const webpackDevMiddleware = require('webpack-dev-middleware');
+  const webpackConfig = require('../webpack.config.js');
+  const compiler = webpack(webpackConfig);
+  app.use('/build', webpackDevMiddleware(compiler, {
+    stats: {
+      colors: true,
+      chunks: false
+    }
+  }));
+} else {
+  // Production route: /build serves static files in build/
+  app.use('/build', express.static(path.join(rootDir, 'build')));
+}
 
 app.use(bodyParser.json());
 

@@ -1,19 +1,15 @@
 
 # Installation
 
-Install dependencies:
+Install nvm, node (8.9.1+), and install yarn globally.
+Run this command in the project's directory to install dependencies:
 
-    npm install -g jspm@beta
-    npm install
-    jspm install
+    yarn install
 
-Run in a production environment:
+Start the server in development mode with this command:
 
-    npm run build
-    LISTEN=8001 npm start
+    LISTEN=8020 REDIS_URL=redis://172.16.0.1:6379 npm run develop
 
-Run in a development environment:
+Start the server in production mode with this command:
 
-    npm run bundle-build
-    npm run bundle-deps
-    LISTEN=8001 npm run develop
+    LISTEN=8020 REDIS_URL=redis://172.16.0.1:6379 npm start
