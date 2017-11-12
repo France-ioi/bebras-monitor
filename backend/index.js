@@ -6,6 +6,7 @@ import * as http from 'http';
 import express from 'express';
 import bodyParser from 'body-parser';
 import compression from 'compression';
+import basicAuth from 'express-basic-auth';
 import colors from 'colors/safe';
 
 import Worker from './worker';
@@ -41,6 +42,12 @@ if (isDevelopment) {
 } else {
   // Production route: /build serves static files in build/
   app.use('/build', express.static(path.join(rootDir, 'build')));
+}
+
+const authFile = 'auth.json';
+if (fs.existsSync(authFile)) {
+  const users = JSON.parse(fs.readFileSync(authFile, 'utf8'));
+  app.use(basicAuth({users, challenge: true}));
 }
 
 app.use(bodyParser.json());
