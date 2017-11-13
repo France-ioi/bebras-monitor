@@ -5,7 +5,7 @@ export function hexToBytes (hex) {
     bytes.push(parseInt(hex.substr(i, 2), 16));
   }
   return bytes;
-}
+};
 
 export function getKeyIP (key) {
   const md = /^IP\(([0-9a-f]+)\)$/.exec(key);
@@ -14,4 +14,4 @@ export function getKeyIP (key) {
   }
   const hexIp = md[1];
   return hexToBytes(hexIp).join('.');
-}
+};
