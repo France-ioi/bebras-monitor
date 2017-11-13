@@ -41,7 +41,7 @@ export default function* (deps) {
     _renderEntry = (entry) => {
       const {key, ip, action} = entry;
       return (
-        <li key={key} onClick={onSelectEntry} onMouseOver={onShowEntry} data-key={key}>
+        <li key={key} onClick={this.onSelectEntry} onMouseOver={this.onShowEntry} data-key={key}>
           {ip}{' '}{action}
         </li>
       );
