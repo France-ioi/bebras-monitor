@@ -2,6 +2,7 @@
 import Immutable from 'immutable';
 import FingerTree from 'fingertree';
 import createTree from 'functional-red-black-tree';
+import assert from 'assert';
 
 import {getKeyIP} from './utils';
 
@@ -56,6 +57,9 @@ export default function LiveSet () {
   this.byKey = Immutable.Map();
   this.tree = FingerTree.fromArray([], measurer);
   this.byTotal = createTree();
+};
+
+LiveSet.prototype.freeze = function () {
   Object.freeze(this);
 };
 
@@ -65,7 +69,6 @@ LiveSet.prototype.mutated = function (func) {
   copy.tree = this.tree;
   copy.byTotal = this.byTotal;
   func(copy);
-  Object.freeze(copy);
   return copy;
 };
 
@@ -92,6 +95,7 @@ LiveSet.prototype.set = function (element) {
   const trees = this.tree.split(m => m.size > entry.position);
   const left = trees[0], right = trees[1];
   const oldElement = right.peekFirst();
+  assert(key === oldElement.key);
   const newRight = right.removeFirst().addFirst(element);
   this.byKey = this.byKey.set(key, new Entry(entry.position, element));
   this.tree = left.concat(newRight);

@@ -1,40 +1,26 @@
 
 import React from 'react';
 import {Nav, NavItem} from 'react-bootstrap';
-import {defineAction, addReducer, defineSelector, defineView, use} from 'epic-linker';
+import {connect} from 'react-redux';
 
-export default tabs => function* (deps) {
+export default function (tabs) {
 
   const tabByKey = {};
-  const viewNames = [];
   tabs.forEach(function (tab) {
     tabByKey[tab.key] = tab;
-    if (tab.view) {
-      viewNames.push(tab.view);
-    }
   });
 
-  // Declare dependencies on all declared views.
-  yield use.apply(null, viewNames);
+  function tabsSelector ({activeTabKey, actions: {setActiveTab}}, props) {
+    return {activeTabKey, setActiveTab};
+  }
 
-  yield defineAction('setActiveTab', 'Navigation.ActiveTab.Set');
+  function activeTabSelector ({activeTabKey, views}, props) {
+    const tab = activeTabKey && tabByKey[activeTabKey];
+    const View = tab && tab.view && views[tab.view];
+    return {View};
+  }
 
-  yield addReducer('setActiveTab', function (state, action) {
-    const {key} = action;
-    return {...state, activeTabKey: key};
-  });
-
-  yield defineSelector('TabsSelector', function (state, props) {
-    const {activeTabKey} = state;
-    return {activeTabKey};
-  });
-
-  yield defineView('Tabs', 'TabsSelector', class Tabs extends React.PureComponent {
-
-    setActiveTab = (key) => {
-      this.props.dispatch({type: deps.setActiveTab, key});
-    };
-
+  class Tabs extends React.PureComponent {
     render () {
       let {activeTabKey} = this.props;
       const items = tabs.map(function (tab) {
@@ -42,24 +28,32 @@ export default tabs => function* (deps) {
         const enabled = true; // add logic here if tabs can be disabled
         return <NavItem key={key} eventKey={key} disabled={!enabled}>{label}</NavItem>;
       });
-      return <Nav bsStyle="pills" onSelect={this.setActiveTab} activeKey={activeTabKey}>{items}</Nav>;
+      return <Nav bsStyle="pills" onSelect={this._setActiveTab} activeKey={activeTabKey}>{items}</Nav>;
     }
+    _setActiveTab = (key) => {
+      this.props.setActiveTab(key);
+    };
+  }
 
-  });
-
-  yield defineView('ActiveTab', 'TabsSelector', class ActiveTab extends React.PureComponent {
-
+  class ActiveTab extends React.PureComponent {
     render () {
-      const {activeTabKey} = this.props;
-      const viewName = tabByKey[activeTabKey].view;
-      let content = false;
-      if (viewName) {
-        const View = deps[viewName];
-        content = <View/>;
-      }
-      return content;
+      const {View} = this.props;
+      return View ? <View/> : false;
     }
+  }
 
-  });
+  return {
+    actionBuilders: {
+      setActiveTab: (key) => ({type: 'Navigation.SetActiveTab', payload: {key}})
+    },
+    actionReducers: {
+      'Navigation.SetActiveTab': (state, {payload: {key}}) =>
+        ({...state, activeTabKey: key})
+    },
+    views: {
+      Tabs: connect(tabsSelector)(Tabs),
+      ActiveTab: connect(activeTabSelector)(ActiveTab),
+    }
+  };
 
 };

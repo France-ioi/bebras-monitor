@@ -1,26 +1,44 @@
 
 import React from 'react';
-import {use, defineSelector, defineView} from 'epic-linker';
+import {connect} from 'react-redux';
 
-export default function* (deps) {
+import NavigationBundle from './navigation';
+import ActivityTabBundle from './activity_tab';
+import ActionsTabBundle from './actions_tab';
 
-  yield use('Tabs', 'ActiveTab', 'Refresh');
-
-  yield defineView('App', class App extends React.PureComponent {
-    render () {
-      return (
-        <div className="container">
-          <div id="header">
-            <div className="pull-right">
-              <deps.Refresh/>
-            </div>
-            <deps.Tabs/>
+class App extends React.PureComponent {
+  render () {
+    const {RefreshControl, Tabs, ActiveTab} = this.props;
+    return (
+      <div className="container">
+        <div id="header">
+          <div className="pull-right">
+            <RefreshControl/>
           </div>
-          <div id="content">
-            <deps.ActiveTab/>
-          </div>
-        </div>);
-    }
-  });
+          <Tabs/>
+        </div>
+        <div id="content">
+          <ActiveTab/>
+        </div>
+      </div>
+    );
+  }
+}
 
+function AppSelector ({views: {RefreshControl, Tabs, ActiveTab}}) {
+  return {RefreshControl, Tabs, ActiveTab};
+}
+
+export default {
+  views: {
+    App: connect(AppSelector)(App),
+  },
+  includes: [
+    NavigationBundle([
+      {key: 'activity', label: "Activity", view: 'ActivityTab'},
+      {key: 'actions', label: "Actions", view: 'ActionsTab'},
+    ]),
+    ActivityTabBundle,
+    ActionsTabBundle,
+  ]
 };

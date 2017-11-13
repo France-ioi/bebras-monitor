@@ -1,71 +1,55 @@
 
 import React from 'react';
-import {Button} from 'react-bootstrap';
-import {use, defineSelector, defineView} from 'epic-linker';
+import {connect} from 'react-redux';
 
-export default function* (deps) {
+class ActionsTab extends React.PureComponent {
+  render () {
+    const {entries, pointedEntry, selectedEntry, selectEntry, showEntry, EntryList, EntryPanel} = this.props;
+    return (
+      <div className="row">
+        <div className="col-md-6">
+          <EntryList entries={entries} selectedEntry={selectedEntry}
+            selectEntry={selectEntry} showEntry={showEntry} />
+        </div>
+        <div className="col-md-6">
+          {selectedEntry &&
+            <EntryPanel entry={selectedEntry} />}
+          {pointedEntry && pointedEntry !== selectedEntry &&
+            <EntryPanel entry={pointedEntry} />}
+        </div>
+      </div>
+    );
+  }
+  _onSelectEntry = (entry) => {
+    this.props.selectEntry(entry.key);
+  };
+  _onShowEntry = (entry) => {
+    this.props.showEntry(entry.key);
+  };
+}
 
-  yield use('EntryPanel', 'showEntry', 'selectEntry');
+function ActionsTabSelector (state, props) {
+  const {actions: {selectEntry, showEntry}, views: {EntryList, EntryPanel}, actionEntries: entries, selectedEntry, pointedEntry} = state;
+  return {selectEntry, showEntry, EntryList, EntryPanel, entries, selectedEntry, pointedEntry};
+}
 
-  yield defineSelector('ActionsTabSelector', function (state, props) {
-    const {entries, selectedEntryKey, pointedEntryKey} = state;
-    let pointedEntry, selectedEntry;
-    const shownEntries = [];
+function selectActionEntries ({entries}) {
+  const actionEntries = [];
+  if (entries) {
     Object.keys(entries).forEach(function (key) {
       const entry = entries[key];
       if (entry.action) {
-        shownEntries.push(entry);
-      }
-      if (key === pointedEntryKey) {
-        pointedEntry = entry;
-      }
-      if (key === selectedEntryKey) {
-        selectedEntry = entry;
+        actionEntries.push(entry);
       }
     });
-    return {entries: shownEntries, pointedEntry, selectedEntry};
-  });
+  }
+  console.log('entries', entries, 'actionEntries', actionEntries);
+  return actionEntries;
+}
 
-  yield defineView('ActionsTab', 'ActionsTabSelector', class ActionsTab extends React.PureComponent {
-
-    onShowEntry = (event) => {
-      const key = event.currentTarget.getAttribute('data-key');
-      this.props.dispatch({type: deps.showEntry, key});
-    };
-
-    onSelectEntry = (event) => {
-      const key = event.currentTarget.getAttribute('data-key');
-      this.props.dispatch({type: deps.selectEntry, key});
-    };
-
-    _renderEntry = (entry) => {
-      const {key, ip, action} = entry;
-      return (
-        <li key={key} onClick={this.onSelectEntry} onMouseOver={this.onShowEntry} data-key={key}>
-          {ip}{' '}{action}
-        </li>
-      );
-    };
-
-    render () {
-      const {entries, pointedEntry, selectedEntry, dispatch} = this.props;
-      return (
-        <div className="row">
-          <div className="col-md-6">
-            <ul>
-              {entries.map(this._renderEntry)}
-            </ul>
-          </div>
-          <div className="col-md-6">
-            {selectedEntry &&
-              <deps.EntryPanel entry={selectedEntry} dispatch={dispatch}/>}
-            {pointedEntry && pointedEntry !== selectedEntry &&
-              <deps.EntryPanel entry={pointedEntry} dispatch={dispatch}/>}
-          </div>
-        </div>
-      );
-    }
-
-  });
-
+export default {
+  views: {
+    ActionsTab: connect(ActionsTabSelector)(ActionsTab)
+  },
+  lateReducer: (state, _action) => ({...state, actionEntries: selectActionEntries(state)})
 };

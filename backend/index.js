@@ -53,7 +53,7 @@ if (fs.existsSync(authFile)) {
 app.use(bodyParser.json());
 
 app.get('/', function (req, res) {
-  res.render('index', {development: isDevelopment});
+  res.render('index', {development: isDevelopment, options: {}});
 });
 
 app.post('/refresh', function (req, res) {
@@ -62,19 +62,21 @@ app.post('/refresh', function (req, res) {
   const view = {};
   const {liveSet, actionMap} = workerStore.getState();
   const keySet = new Set();
-  // TODO: get entries from actionMap
-  const actionKeys = Object.keys(actionMap);
-  actionKeys.forEach(key => keySet.add(key));
   if (max_top_entries) {
-    // XXX make topEntries a list of keys, adding entries to view.entries object
     view.topEntries = liveSet.getTopEntries(parseInt(max_top_entries));
     view.topEntries.forEach(key => keySet.add(key));
   }
+  if (actionMap) {
+    Object.keys(actionMap).forEach(key => keySet.add(key));
+  }
   const entries = view.entries = liveSet.mget(keySet);
-  actionKeys.forEach(function (key) {
-    const infos = actionMap[key];
-    entries[key] = {...entries[key], action: infos.action};
-  });
+  if (actionMap) {
+    console.log('actionMap', JSON.stringify(actionMap));
+    Object.keys(actionMap).forEach(function (key) {
+      const infos = actionMap[key];
+      entries[key] = {...entries[key], action: infos.action};
+    });
+  }
   res.json(view);
 });
 

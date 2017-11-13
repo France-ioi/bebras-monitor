@@ -10,3 +10,5 @@ body(id='app')
       img#gears(src='assets/gears.svg', style="width: 100%")
   script(type='text/javascript', src='build/vendor.js')
   script(type='text/javascript', src='build/index.js')
+  script(type='text/javascript')
+    | App.start(document.getElementById('react-container'), !{JSON.stringify(options)});

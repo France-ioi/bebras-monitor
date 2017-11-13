@@ -26,4 +26,3 @@ export const asyncPostJson = function (path, body) {
     });
   });
 };
-

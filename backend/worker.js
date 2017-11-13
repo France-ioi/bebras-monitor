@@ -3,8 +3,8 @@
 import Redis from 'redis';
 import bluebird from 'bluebird';
 import {createStore, applyMiddleware} from 'redux';
-import {default as sagaMiddlewareFactory, END, takeEvery, takeLatest} from 'redux-saga';
-import {call, cps, select, put, take, fork, actionChannel} from 'redux-saga/effects'
+import {default as sagaMiddlewareFactory, END} from 'redux-saga';
+import {all, call, cps, select, put, take, fork, takeEvery, takeLatest, actionChannel} from 'redux-saga/effects'
 import Ticker from 'redux-saga-ticker';
 import Immutable from 'immutable';
 import fs from 'fs';
@@ -86,9 +86,11 @@ function* getRedisClient () {
 }
 
 function* reloadActionMap () {
+  console.log('reloading action map');
   const redis = yield call(getRedisClient);
   const keys = yield cps([redis, redis.smembers], 'action_set');
   const actionMap = {};
+  console.log('keys in action_set', keys);
   if (keys.length !== 0) {
     const actions = yield cps([redis, redis.mget], keys.map(key => `a.${key}`));
     keys.forEach(function (key, i) {
@@ -97,7 +99,7 @@ function* reloadActionMap () {
   }
   yield put({type: 'UPDATE_ACTION_MAP', actionMap});
   // Ensure entries that have an action are loaded.
-  yield keys.map(key => call(ensureEntryLoaded, key));
+  yield all(keys.map(key => call(ensureEntryLoaded, key)));
 }
 
 function* ensureEntryLoaded (key) {
@@ -197,8 +199,8 @@ function* mainSaga () {
   yield takeLatest('RELOAD_ACTION_MAP', reloadActionMap);
   yield fork(loadEntryTask);
   yield takeEvery('CHANGE_ENTRY_ACTION', setEntryAction);
-  yield fork(followActivityQueue);
-  yield fork(minuteCron);
+  //yield fork(followActivityQueue);
+  //yield fork(minuteCron);
   yield call(reloadActionMap);
 }
 
@@ -206,9 +208,11 @@ export default function start (redisUrl) {
   const sagaMiddleware = sagaMiddlewareFactory();
   const store = createStore(
     reducer,
+    null,
     applyMiddleware(sagaMiddleware)
   );
   store.dispatch({type: 'INIT', redisUrl});
+  console.log('starting main saga');
   sagaMiddleware.run(mainSaga);
   return store;
 };
