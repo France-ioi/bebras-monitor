@@ -5,6 +5,7 @@ import classnames from 'classnames';
 import {connect} from 'react-redux';
 
 const barKeys = [
+  'loadIndex',
   'loadPublicGroups',
   'loadSession',
   'checkPassword',
@@ -14,20 +15,25 @@ const barKeys = [
   'answer',
   'destroySession',
   'closeContest',
-  'solutions'
+  'solutions',
+  'loadOther',
+  'request'
 ];
 
 const keyColor = {
-  loadPublicGroups: '#ff0000',
-  loadSession: '#e2571e',
-  checkPassword: '#ff7f00',
-  createTeam: '#ffff00',
-  loadContestData: '#00ff00',
-  getRemainingTime: '#96bf33',
-  answer: '#0000ff',
-  destroySession: '#4b0082',
-  closeContest: '#8b00ff',
-  solutions: '#f0f0f0'
+  loadIndex: '#66ff66',
+  loadPublicGroups: '#33cc33',
+  loadSession: '#009933',
+  checkPassword: '#00ffff',
+  createTeam: '#00ccff',
+  loadContestData: '#0066cc',
+  getRemainingTime: '#ffcc99',
+  answer: '#ffcc66',
+  destroySession: '#cc99ff',
+  closeContest: '#cc66ff',
+  solutions: '#cc33ff',
+  loadOther: '#ff99cc',
+  request: '#ff0000'
 };
 
 class EntryPanel extends React.PureComponent {
@@ -63,7 +69,7 @@ class EntryPanel extends React.PureComponent {
                 <li key={key}>
                   <div className="hbar-label">{key}</div>
                   <div className="hbar-value">
-                    <div className="hbar-background" style={{width: `${value / 10}px`, backgroundColor: keyColor[key]}}></div>
+                    <div className="hbar-background" style={{width: `${value*100/total}%`, backgroundColor: keyColor[key]}}></div>
                     <div className="hbar-number">{value}</div>
                   </div>
                 </li>
@@ -87,6 +93,7 @@ class EntryPanel extends React.PureComponent {
         </div>
         <div>
           <Radio inline checked={action === undefined} data-key='' onChange={this.onActionChange}>{"no action"}</Radio>
+          <Radio inline checked={action === 'r'} data-key='r' onChange={this.onActionChange}>{"rate-limit"}</Radio>
           <Radio inline checked={action === 'b'} data-key='b' onChange={this.onActionChange}>{"blacklist"}</Radio>
           <Radio inline checked={action === 'w'} data-key='w' onChange={this.onActionChange}>{"whitelist"}</Radio>
           <Radio inline checked={action === 'W'} data-key='W' onChange={this.onActionChange}>{"bypass"}</Radio>

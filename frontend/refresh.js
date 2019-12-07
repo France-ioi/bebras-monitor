@@ -11,8 +11,8 @@ import {asyncPostJson} from './backend_api';
 function* refreshSaga ({refreshStarted, refreshCompleted, refreshFailed}) {
   try {
     yield put(refreshStarted());
-    const query = {max_top_entries: 25};
-    const result = yield call(asyncPostJson, '/refresh', query);
+    const query = {max_top_entries: 100};
+    const result = yield call(asyncPostJson, 'refresh', query);
     yield put(refreshCompleted(new Date(), result));
   } catch (ex) {
     console.log('backend refresh failed', ex);
@@ -31,8 +31,8 @@ function refreshStartedReducer (state, _action) {
 }
 
 function refreshCompletedReducer (state, {payload: {timestamp, result}}) {
-  const {entries, topEntries} = result;
-  return {...state, entries, topKeys: topEntries, refreshPending: false, refreshError: false, refreshedAt: timestamp};
+  const {entries, topEntries, logs} = result;
+  return {...state, entries, topKeys: topEntries, logs, refreshPending: false, refreshError: false, refreshedAt: timestamp};
 }
 
 function refreshFailedReducer (state, {payload: {timestamp, message}}) {

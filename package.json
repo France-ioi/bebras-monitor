@@ -16,6 +16,7 @@
   },
   "scripts": {
     "build": "webpack",
+    "watch": "webpack --watch --progress",
     "start": "NODE_ENV=production babel-node backend/index.js",
     "develop": "NODE_ENV=development babel-node backend/index.js",
     "test": "babel-node backend/test.js",

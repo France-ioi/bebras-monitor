@@ -60,7 +60,7 @@ app.post('/refresh', function (req, res) {
   const query = req.body;
   const {max_top_entries} = query;
   const view = {};
-  const {liveSet, actionMap} = workerStore.getState();
+  const {liveSet, actionMap, logs} = workerStore.getState();
   const keySet = new Set();
   if (max_top_entries) {
     view.topEntries = liveSet.getTopEntries(parseInt(max_top_entries));
@@ -71,12 +71,12 @@ app.post('/refresh', function (req, res) {
   }
   const entries = view.entries = liveSet.mget(keySet);
   if (actionMap) {
-    console.log('actionMap', JSON.stringify(actionMap));
     Object.keys(actionMap).forEach(function (key) {
       const infos = actionMap[key];
       entries[key] = {...entries[key], action: infos.action};
     });
   }
+  view.logs = logs.join("\n");
   res.json(view);
 });
 
@@ -91,7 +91,7 @@ function onSignal (options, err) {
   if (options.source === 'EXCEPT') {
     console.log(err);
   }
-  if (options.dump) {
+  if (false && options.dump) {
     const {liveSet} = workerStore.getState();
     const dump = liveSet.dump();
     const dumpStr = JSON.stringify(dump);
@@ -109,7 +109,7 @@ process.on('SIGHUP', onSignal.bind(null, {exit: true, status: 0, dump: true, sou
 process.on('SIGUSR1', onSignal.bind(null, {exit: false, dump: true, source: 'USR1'}));
 process.on('uncaughtException', onSignal.bind(null, {exit: true, status: 1, dump: 'alt', source: 'EXCEPT'}));
 
-try {
+/*try {
   const dumpStr = fs.readFileSync('dump.json', 'utf8');
   const dump = JSON.parse(dumpStr);
   workerStore.dispatch({type: 'LOAD', dump});
@@ -117,7 +117,7 @@ try {
   console.log(colors.green(`loaded ${count} entries`));
 } catch (ex) {
   console.log(colors.red('no dump found'), ex);
-}
+}*/
 workerStore.dispatch({type: 'START'});
 
 const server = http.createServer(app);

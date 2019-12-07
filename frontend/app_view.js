@@ -5,6 +5,7 @@ import {connect} from 'react-redux';
 import NavigationBundle from './navigation';
 import ActivityTabBundle from './activity_tab';
 import ActionsTabBundle from './actions_tab';
+import LogsTabBundle from './logs_tab';
 
 class App extends React.PureComponent {
   render () {
@@ -37,8 +38,10 @@ export default {
     NavigationBundle([
       {key: 'activity', label: "Activity", view: 'ActivityTab'},
       {key: 'actions', label: "Actions", view: 'ActionsTab'},
+      {key: 'logs', label: "Logs", view: 'LogsTab'}
     ]),
     ActivityTabBundle,
     ActionsTabBundle,
+    LogsTabBundle,
   ]
 };

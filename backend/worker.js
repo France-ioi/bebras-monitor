@@ -3,7 +3,7 @@
 import Redis from 'redis';
 import bluebird from 'bluebird';
 import {createStore, applyMiddleware} from 'redux';
-import {default as sagaMiddlewareFactory, END} from 'redux-saga';
+import {default as sagaMiddlewareFactory, END, delay} from 'redux-saga';
 import {all, call, cps, select, put, take, fork, takeEvery, takeLatest, actionChannel} from 'redux-saga/effects'
 import Ticker from 'redux-saga-ticker';
 import Immutable from 'immutable';
@@ -16,7 +16,7 @@ import LiveSet from './live_set';
 bluebird.promisifyAll(Redis.RedisClient.prototype);
 bluebird.promisifyAll(Redis.Multi.prototype);
 
-const maxFetchInterval = 3000; // ms
+const maxFetchInterval = 8000; // ms
 
 const PerIpKeys = {
   answer: 'answer.total',
@@ -28,7 +28,10 @@ const PerIpKeys = {
   loadContestData: 'loadContestData.total',
   loadPublicGroups: 'loadPublicGroups',
   loadSession: 'loadSession.total',
-  solutions: 'solutions.total'
+  solutions: 'solutions.total',
+  loadOther: 'loadOther.total',
+  loadIndex: 'loadIndex',
+  request: 'request.total'
 };
 
 function reducer (state, action) {
@@ -37,6 +40,7 @@ function reducer (state, action) {
     return {
       liveSet: new LiveSet(),
       liveSetCapacity: 1000,
+      logs: [],
       redisUrl: action.redisUrl
     };
   case 'LOAD':
@@ -71,9 +75,22 @@ function reducer (state, action) {
     const {actionMap} = action;
     return {...state, actionMap};
   }
+  case 'ADD_LOG': {
+    const {logs} = state;
+    const {logMsg} = action;
+    logs.unshift(logMsg);
+    logs.slice(0, 50);
+    return state;
+  }
   default:
     return state;
   }
+}
+
+function* log(str) {
+  const logMsg = '[' + (new Date()).toISOString().slice(0, 19) + '] ' + str;
+  yield put({type: 'ADD_LOG', logMsg});
+  console.log(logMsg);
 }
 
 function getEntryByKey (state, key) {
@@ -93,9 +110,16 @@ function* reloadActionMap () {
   console.log('keys in action_set', keys);
   if (keys.length !== 0) {
     const actions = yield cps([redis, redis.mget], keys.map(key => `a.${key}`));
+    var expiredActions = [];
     keys.forEach(function (key, i) {
+      if(!actions[i]) {
+        return;
+      }
       actionMap[key] = {action: actions[i]};
     });
+    for(var key in expiredActions) {
+      yield put({type: 'CHANGE_ENTRY_ACTION', key, action: ''});
+    }
   }
   yield put({type: 'UPDATE_ACTION_MAP', actionMap});
   // Ensure entries that have an action are loaded.
@@ -110,6 +134,8 @@ function* ensureEntryLoaded (key) {
 }
 
 function* followActivityQueue () {
+  // Currently unused
+
   let count = 0, key, entry, now;
   const infoMap = {};
   const redis = yield call(getRedisClient);
@@ -186,11 +212,103 @@ function* reverseLookup (key, ip) {
   yield put({type: 'UPDATE_ENTRY', key, update: {domains}});
 }
 
+function* analyzeShortTerm(ipKeyValues) {
+  const actionMap = yield select(state => state.actionMap);
+  for(var ip in ipKeyValues) {
+    if(actionMap[ip]) {
+//      console.log('skipped ' + ip + ' which has action ' + actionMap[ip].action);
+      return;
+    }
+
+    // do something
+//    var action = 'b';
+//    yield put({type: 'CHANGE_ENTRY_ACTION', key: ip, action});
+//    yield delay(10);
+  }
+}
+
+function* analyzeLongTerm() {
+  const liveSet = yield select(state => state.liveSet);
+  const keySet = new Set();
+  const allEntries = liveSet.getTopEntries();
+  allEntries.forEach(key => keySet.add(key));
+  const entries = liveSet.mget(keySet);
+  for(var key in entries) {
+    var entry = entries[key];
+
+    // do something
+//    var action = 'b';
+//    yield put({type: 'CHANGE_ENTRY_ACTION', key: ip, action});
+//    yield delay(10);
+  }
+}
+
+function* liveUpdateWorker () {
+  const channel = Ticker(1 * 1000);
+  const redis = yield call(getRedisClient);
+  const ipActionRegexp = /c\.(IP\([^)]*\))\.(.*)/;
+  var lastTimestamp = null;
+  var curTimestamp = null
+  while(true) {
+    // Wait for new timestamp to analyse
+    while(lastTimestamp == curTimestamp) {
+        yield take(channel);
+        curTimestamp = Math.floor(Date.now() / 10000);
+    }
+    lastTimestamp = curTimestamp;
+
+    // Lookup keys
+    const timestampKey = 'd(' + (curTimestamp - 1) + ').c.IP*';
+    const counterKeys = yield cps([redis, redis.keys], timestampKey);
+    if(!counterKeys.length) { continue; }
+
+    // Get counters
+    const counterValues = yield cps([redis, redis.mget], counterKeys);
+    var ipKeyValues = {};
+    counterKeys.forEach(function (key, i) {
+      const [, ip, action] = ipActionRegexp.exec(key);
+      if(!ipKeyValues[ip]) { ipKeyValues[ip] = {}; }
+      ipKeyValues[ip][action] = parseInt(counterValues[i]);
+    });
+
+    // Load updated counters
+    for(var key in ipKeyValues) {
+      yield put({type: 'LOAD_ENTRY', key});
+    }
+
+//    console.log(timestampKey);
+//    console.log(ipKeyValues);
+//    yield log('test');
+    yield call(analyzeShortTerm, ipKeyValues);
+  }
+}
+
 function* minuteCron () {
-  const channel = Ticker(60 * 1000);
+  const channel = Ticker(1 * 1000);
   while (true) {
     yield take(channel);
+    yield call(analyzeLongTerm);
     yield put({type: 'PRUNE_ENTRIES'});
+  }
+}
+
+function* findLiveClients () {
+  const redis = yield call(getRedisClient);
+  const ipActionRegexp = /c\.(IP\([^)]*\))/;
+
+  const counterKeys = yield cps([redis, redis.keys], "c.IP(*");
+
+  var ips = new Set();
+  counterKeys.forEach(function(key, i) {
+    const ip = ipActionRegexp.exec(key)[1];
+    ips.add(ip);
+  });
+
+  console.log('Found ' + ips.size + ' clients');
+  var puts = [];
+  for(var key of ips) {
+    yield put({type: 'LOAD_ENTRY', key});
+    yield delay(100);
   }
 }
 
@@ -200,8 +318,10 @@ function* mainSaga () {
   yield fork(loadEntryTask);
   yield takeEvery('CHANGE_ENTRY_ACTION', setEntryAction);
   //yield fork(followActivityQueue);
-  //yield fork(minuteCron);
+  yield fork(liveUpdateWorker);
+  yield fork(minuteCron);
   yield call(reloadActionMap);
+  yield call(findLiveClients);
 }
 
 export default function start (redisUrl) {
