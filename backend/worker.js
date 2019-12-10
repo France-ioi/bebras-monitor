@@ -18,7 +18,35 @@ bluebird.promisifyAll(Redis.Multi.prototype);
 
 const maxFetchInterval = 8000; // ms
 
-const PerIpKeys = {
+const PerIpKeys = [
+    'activity.pass',
+    'answer.pass',
+    'checkPassword.fail',
+    'checkPassword.pass',
+//    'checkPassword.total',
+    'closeContest.pass',
+    'createTeam.public',
+    'createTeam.private',
+//    'createTeam.total',
+    'destroySession',
+    'error',
+    'getRemainingTime.fail',
+    'getRemainingTime.pass',
+//    'getRemainingTime.total',
+    'loadContestData.pass',
+    'loadIndex',
+    'loadOther.data',
+    'loadOther.fail',
+//    'loadOther.total',
+    'loadPublicGroups',
+    'loadSession.found',
+    'loadSession.new',
+//    'loadSession.total',
+    'request.total',
+    'solutions.pass'
+];
+
+/*const PerIpKeys = {
   answer: 'answer.total',
   checkPassword: 'checkPassword.total',
   closeContest: 'closeContest.total',
@@ -32,7 +60,7 @@ const PerIpKeys = {
   loadOther: 'loadOther.total',
   loadIndex: 'loadIndex',
   request: 'request.total'
-};
+};*/
 
 function reducer (state, action) {
   switch (action.type) {
@@ -172,14 +200,15 @@ function* loadEntryTask () {
     const prevEntry = yield select(getEntryByKey, key);
     const entry = prevEntry ? {...prevEntry} : {key, ip};
     entry.updatedAt = Date.now();
+    if(!entry.counters) { entry.counters = {}; }
     let total = 0;
-    const counterKeys = Object.keys(PerIpKeys);
-    const keys = counterKeys.map(ckey => `c.${key}.${PerIpKeys[ckey]}`);
+//    const counterKeys = Object.keys(PerIpKeys);
+    const keys = PerIpKeys.map(ckey => `c.${key}.${ckey}`);
     const counters = yield cps([redis, redis.mget], keys);
-    counterKeys.forEach(function (ckey, i) {
+    PerIpKeys.forEach(function (ckey, i) {
       const strValue = counters[i];
       const value = strValue === null ? 0 : parseInt(strValue);
-      entry[ckey] = value;
+      entry.counters[ckey.replace('.', '_')] = value;
       total += value;
     });
     entry.total = total;

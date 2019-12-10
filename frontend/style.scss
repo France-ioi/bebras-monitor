@@ -83,6 +83,9 @@ ul.bars > li {
 }​
 */
 
+ul.hbars {
+  padding-left: 0px;
+}
 ul.hbars > li {
   display: flex;
   width: 100%;
@@ -96,7 +99,7 @@ ul.hbars > li > * {
   display: inline-block;
 }
 .hbar-label {
-  width: 120px;
+  width: 180px;
   flex-shrink: 0;
 }
 .hbar-value {
