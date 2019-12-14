@@ -9,6 +9,8 @@ import Ticker from 'redux-saga-ticker';
 import Immutable from 'immutable';
 import fs from 'fs';
 import dns from 'dns';
+import colors from 'colors/safe';
+import * as math from 'mathjs';
 
 import {getKeyIP} from './utils';
 import LiveSet from './live_set';
@@ -62,19 +64,42 @@ const PerIpKeys = [
   request: 'request.total'
 };*/
 
+const ConfigKeys = [
+    'response_queue_size',
+    'response_queue_size',
+    'counters.local_cache_size',
+    'counters.ttl',
+    'counters.local_maximum',
+    'counters.reload_interval',
+    'counters.flush_interval',
+    'counters.flush_ratio',
+    'counters.debug',
+    'counters.quiet',
+    'activity_cache.max_entries',
+    'activity_cache.threshold',
+    'activity_cache.debug',
+    'action_cache.max_entries',
+    'action_cache.reload_interval',
+    'action_cache.debug',
+];
+
 function reducer (state, action) {
   switch (action.type) {
   case 'INIT':
     return {
+      config: {},
       liveSet: new LiveSet(),
       liveSetCapacity: 1000,
       logs: [],
-      redisUrl: action.redisUrl
+      redisUrl: action.redisUrl,
+      rules: {}
     };
   case 'LOAD':
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
       copy.load(action.dump);
     })};
+  case 'LOAD_RULES':
+    return {...state, rules: action.rules};
   case 'SET_ENTRY':
     return {...state, liveSet: state.liveSet.mutated(function (copy) {
       copy.set(action.entry);
@@ -102,6 +127,10 @@ function reducer (state, action) {
   case 'UPDATE_ACTION_MAP': {
     const {actionMap} = action;
     return {...state, actionMap};
+  }
+  case 'UPDATE_CONFIG': {
+    const {config} = action;
+    return {...state, config};
   }
   case 'ADD_LOG': {
     const {logs} = state;
@@ -201,8 +230,8 @@ function* loadEntryTask () {
     const entry = prevEntry ? {...prevEntry} : {key, ip};
     entry.updatedAt = Date.now();
     if(!entry.counters) { entry.counters = {}; }
+    if(!entry.ruleCounters) { entry.ruleCounters = {}; }
     let total = 0;
-//    const counterKeys = Object.keys(PerIpKeys);
     const keys = PerIpKeys.map(ckey => `c.${key}.${ckey}`);
     const counters = yield cps([redis, redis.mget], keys);
     PerIpKeys.forEach(function (ckey, i) {
@@ -241,34 +270,58 @@ function* reverseLookup (key, ip) {
   yield put({type: 'UPDATE_ENTRY', key, update: {domains}});
 }
 
-function* analyzeShortTerm(ipKeyValues) {
-  const actionMap = yield select(state => state.actionMap);
-  for(var ip in ipKeyValues) {
-    if(actionMap[ip]) {
-//      console.log('skipped ' + ip + ' which has action ' + actionMap[ip].action);
-      return;
+function* analyzeEntryRules(rules, entry, entryCounters, isLongTerm) {
+  const ruleType = isLongTerm ? 'LT ' : 'ST ';
+  for(var idx in rules) {
+    const rule = rules[idx];
+    const ruleValue = math.evaluate(rule.counter, entryCounters);
+    if(isLongTerm) {
+      entry.ruleCounters[rule.name] = ruleValue;
     }
 
-    // do something
-//    var action = 'b';
-//    yield put({type: 'CHANGE_ENTRY_ACTION', key: ip, action});
-//    yield delay(10);
+    if(ruleValue >= 0) { continue; }
+
+    var newAction = null;
+    if(rule.action == 'log') {
+      yield log(ruleType + 'rule "' + rule.label + '" -> ' + ruleValue + ' for ' + entry.key);
+    } else if(rule.action == 'reset') {
+      newAction = '';
+    } else if(rule.action == 'reset-' && ['r', 'b'].includes(entry.action)) {
+      newAction = '';
+    } else if(rule.action && ['r', 'b', 'w', 'W'].includes(rule.action)) {
+      newAction = rule.action;
+    }
+    if(newAction !== null && newAction != entry.action) {
+      yield log('Action changed from \'' + entry.action + '\' to \'' + newAction + '\' for ' + entry.key + ' (' + ruleType + 'rule "' + rule.label + '" -> ' + ruleValue + ')');
+      yield put({type: 'CHANGE_ENTRY_ACTION', key: entry.key, action});
+      yield delay(10);
+    }
   }
 }
 
 function* analyzeLongTerm() {
-  const liveSet = yield select(state => state.liveSet);
-  const keySet = new Set();
-  const allEntries = liveSet.getTopEntries();
-  allEntries.forEach(key => keySet.add(key));
-  const entries = liveSet.mget(keySet);
+  const {liveSet, rules} = yield select(state => state);
+  if(!rules.longterm) { return; }
+  const entries = liveSet.dump();
+  const analyzeAfter = Date.now() - 60 * 1000;
   for(var key in entries) {
     var entry = entries[key];
+    if(!entry.counters || entry.updatedAt < analyzeAfter) { continue; }
+    yield call(analyzeEntryRules, rules.longterm, entry, entry.counters, true);
+  }
+}
 
-    // do something
-//    var action = 'b';
-//    yield put({type: 'CHANGE_ENTRY_ACTION', key: ip, action});
-//    yield delay(10);
+function* analyzeShortTerm(ipKeyValues) {
+  const actionMap = yield select(state => state.actionMap);
+  const rules = yield select(state => state.rules);
+  if(!rules.shortterm) { return; }
+  for(var ip in ipKeyValues) {
+    const entry = yield select(getEntryByKey, ip);
+    const shortEntry = entry ? entry : {key: ip, action: ''};
+    PerIpKeys.map(key => {
+      ipKeyValues[ip][key.replace('.', '_')] = 0;
+    });
+    yield call(analyzeEntryRules, rules.shortterm, shortEntry, ipKeyValues[ip]);
   }
 }
 
@@ -297,7 +350,7 @@ function* liveUpdateWorker () {
     counterKeys.forEach(function (key, i) {
       const [, ip, action] = ipActionRegexp.exec(key);
       if(!ipKeyValues[ip]) { ipKeyValues[ip] = {}; }
-      ipKeyValues[ip][action] = parseInt(counterValues[i]);
+      ipKeyValues[ip][action.replace('.', '_')] = parseInt(counterValues[i]);
     });
 
     // Load updated counters
@@ -305,20 +358,27 @@ function* liveUpdateWorker () {
       yield put({type: 'LOAD_ENTRY', key});
     }
 
-//    console.log(timestampKey);
-//    console.log(ipKeyValues);
-//    yield log('test');
     yield call(analyzeShortTerm, ipKeyValues);
   }
 }
 
-function* minuteCron () {
-  const channel = Ticker(1 * 1000);
-  while (true) {
-    yield take(channel);
-    yield call(analyzeLongTerm);
-    yield put({type: 'PRUNE_ENTRIES'});
-  }
+function* refreshExpiry() {
+  // Refresh expiry for all keys of a live client, to avoid some keys expiring
+  // before others. If a client is in the liveSet, then it hasn't been pruned
+  // yet and can be considered active.
+  const redis = yield call(getRedisClient);
+  const liveSet = yield select(state => state.liveSet);
+  const expiryDate = Date.now() - 60 * 60 * 1000;
+  const dump = liveSet.dump();
+  for(var idx in dump) {
+    const entry = dump[idx];
+    for(var key in entry.counters) {
+      if(entry.counters[key] == 0) { continue; }
+      const curKey = 'c.' + entry.key + '.' + key.replace('_', '.');
+//      console.log('Refreshing expiry for ' + curKey);
+      yield cps([redis, redis.expire], curKey, 80 * 60);
+    };
+  };
 }
 
 function* findLiveClients () {
@@ -341,6 +401,44 @@ function* findLiveClients () {
   }
 }
 
+function* loadConfig () {
+  const redis = yield call(getRedisClient);
+  const configMgetValues = yield cps([redis, redis.mget], ConfigKeys.map(key => 'config.' + key));
+  var configValues = {};
+  ConfigKeys.forEach(function (key, i) {
+    configValues[key] = configMgetValues[i] || '';
+  });
+  yield put({type: 'UPDATE_CONFIG', config: configValues});
+}
+
+function* loadRules () {
+  // Load rules from JSON
+  try {
+    const rulesStr = fs.readFileSync('rules.json', 'utf8');
+    const rules = JSON.parse(rulesStr);
+    yield put({type: 'LOAD_RULES', rules});
+  } catch (ex) {
+    console.log(colors.red('Error loading rules JSON'), ex);
+  }
+}
+
+function* minuteCron () {
+  const channel = Ticker(60 * 1000);
+  var uptimeMinutes = 0;
+  while (true) {
+    yield take(channel);
+    yield call(analyzeLongTerm);
+    if(uptimeMinutes % 5 == 0) {
+      yield put({type: 'PRUNE_ENTRIES'});
+    }
+    if(uptimeMinutes % 60 == 0) {
+      yield call(refreshExpiry);
+    }
+    yield call(loadRules);
+    uptimeMinutes++;
+  }
+}
+
 function* mainSaga () {
   yield take('START');
   yield takeLatest('RELOAD_ACTION_MAP', reloadActionMap);
@@ -350,6 +448,8 @@ function* mainSaga () {
   yield fork(liveUpdateWorker);
   yield fork(minuteCron);
   yield call(reloadActionMap);
+  yield call(loadConfig);
+  yield call(loadRules);
   yield call(findLiveClients);
 }
 

@@ -43,7 +43,7 @@ function selectActionEntries ({entries}) {
       }
     });
   }
-  console.log('entries', entries, 'actionEntries', actionEntries);
+//  console.log('entries', entries, 'actionEntries', actionEntries);
   return actionEntries;
 }
 

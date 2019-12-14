@@ -1,0 +1,9 @@
+{
+"shortterm": [
+    {"name": "example1", "label": "Example rule 1", "action": "log", "counter": "answer_pass - 10"}
+    ],
+
+"longterm": [
+    {"name": "example2", "label": "Example rule 2", "action": "w", "counter": "answer_pass + loadIndex * 10"}
+    ]
+}

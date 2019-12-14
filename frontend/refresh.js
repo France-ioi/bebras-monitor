@@ -31,8 +31,8 @@ function refreshStartedReducer (state, _action) {
 }
 
 function refreshCompletedReducer (state, {payload: {timestamp, result}}) {
-  const {entries, topEntries, logs} = result;
-  return {...state, entries, topKeys: topEntries, logs, refreshPending: false, refreshError: false, refreshedAt: timestamp};
+  const {entries, topEntries, logs, config, rules} = result;
+  return {...state, entries, topKeys: topEntries, logs, config, rules, refreshPending: false, refreshError: false, refreshedAt: timestamp};
 }
 
 function refreshFailedReducer (state, {payload: {timestamp, message}}) {

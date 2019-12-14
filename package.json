@@ -61,6 +61,7 @@
     "functional-red-black-tree": "^1.0.1",
     "immutable": "^3.8.1",
     "lodash": "npm:lodash@^4.16.6",
+    "mathjs": "^6.2.5",
     "normalize.css": "^7.0.0",
     "prop-types": "^15.6.0",
     "pug": "^2.0.0-beta5",

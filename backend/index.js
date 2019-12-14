@@ -59,8 +59,8 @@ app.get('/', function (req, res) {
 app.post('/refresh', function (req, res) {
   const query = req.body;
   const {max_top_entries} = query;
-  const view = {};
-  const {liveSet, actionMap, logs} = workerStore.getState();
+  const {liveSet, actionMap, logs, config, rules} = workerStore.getState();
+  const view = {config, rules};
   const keySet = new Set();
   if (max_top_entries) {
     view.topEntries = liveSet.getTopEntries(parseInt(max_top_entries));

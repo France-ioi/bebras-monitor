@@ -95,7 +95,7 @@ window.App.start = function (container) {
   const store = createStore(safeReducer, null, enhancer);
   const actions = bindActions(store, actionBuilders);
   Object.assign(window.App, {store, actions, runSagas});
-  actions.init({debug: true, actions, selectors, views});
+  actions.init({debug: false, actions, selectors, views});
   runSagas();
   actions.refresh();
   ReactDOM.render(<Provider store={store}><views.App/></Provider>, container);

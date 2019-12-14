@@ -79,11 +79,11 @@ const allKeys = (ks => {
 
 class EntryPanel extends React.PureComponent {
   render () {
-    const {entry} = this.props;
+    const {entry, rules} = this.props;
     const {domains, action} = entry;
     const updatedAt = entry.updatedAt && new Date(entry.updatedAt);
     var total = 0;
-    allKeys.forEach(key => { total += entry.counters[key]; });
+    allKeys.forEach(key => { total += (entry.counters && entry.counters[key]) || 0; });
     // <span className="entry-key">{key}</span>
     const header = (
       <div>
@@ -97,9 +97,9 @@ class EntryPanel extends React.PureComponent {
       </div>);
     const renderKeyBars = key => {
       let key1 = getCounterKey(key, keySubkeys[key][0]);
-      let value1 = entry.counters[key1];
-      let key2 = keySubkeys[key][1] ? getCounterKey(key, keySubkeys[key][1]) : '';
-      let value2 = key2 ? entry.counters[key2] : 0;
+      let value1 = entry.counters && entry.counters[key1] || 0;
+      let key2 = keySubkeys[key][1] ? getCounterKey(key, keySubkeys[key][1]) : 0;
+      let value2 = entry.counters && key2 ? entry.counters[key2] : 0;
       let bar1 = (
           <div className="hbar-value">
             <div className="hbar-background" style={{width: `${value1*100/total}%`, backgroundColor: getKeyColor(key1)}}></div>
@@ -133,7 +133,7 @@ class EntryPanel extends React.PureComponent {
         <div className="bars-container">
           <ul className="bars">
             {allKeys.map(key => {
-              let value = entry.counters[key];
+              let value = entry.counters && entry.counters[key] || 0;
               return (<li
                 key={key}
                 title={`${key}: ${value}`}
@@ -151,6 +151,16 @@ class EntryPanel extends React.PureComponent {
           <Radio inline checked={action === 'w'} data-key='w' onChange={this.onActionChange}>{"whitelist"}</Radio>
           <Radio inline checked={action === 'W'} data-key='W' onChange={this.onActionChange}>{"bypass"}</Radio>
         </div>
+        <hr/>
+        <div>
+          <ul className="rule-counters">
+            {rules.longterm ? rules.longterm.map(rule => {
+              let value = entry.ruleCounters ? entry.ruleCounters[rule.name] : '.';
+              let cls = (value != '.' && value < 0) ? 'rule-negative': '';
+              return (<li className={cls} key={rule.name} title={rule.counter}>{rule.label} : {entry.ruleCounters ? entry.ruleCounters[rule.name] : '.'}</li>)
+            }) : ''}
+          </ul>
+        </div>
       </Panel>
     );
   }
@@ -161,8 +171,8 @@ class EntryPanel extends React.PureComponent {
   };
 }
 
-function EntryPanelSelector ({actions: {setEntryAction}}, props) {
-  return {setEntryAction};
+function EntryPanelSelector ({actions: {setEntryAction}, rules}, props) {
+  return {setEntryAction, rules};
 }
 
 export default {
