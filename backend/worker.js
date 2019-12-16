@@ -133,7 +133,7 @@ function reducer (state, action) {
     return {...state, config};
   }
   case 'ADD_LOG': {
-    const {logs} = state;
+    var {logs} = state;
     const {logMsg} = action;
     logs.unshift(logMsg);
     logs = logs.slice(0, 100);
