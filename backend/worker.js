@@ -136,8 +136,8 @@ function reducer (state, action) {
     const {logs} = state;
     const {logMsg} = action;
     logs.unshift(logMsg);
-    logs.slice(0, 50);
-    return state;
+    logs = logs.slice(0, 100);
+    return {...state, logs};
   }
   default:
     return state;
